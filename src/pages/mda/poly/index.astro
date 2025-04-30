@@ -1,0 +1,33 @@
+---
+import MainLayout from '../../../layouts/MainLayout.astro';
+
+// 获取保利发展的历年MDA数据
+const years = [2023, 2022, 2021];
+---
+
+<MainLayout title="保利发展 管理层讨论与分析" activeNav="mda">
+  <div class="max-w-3xl mx-auto py-12">
+    <div class="flex items-center gap-4 mb-6">
+      <a href="/TZB/mda" class="text-primary-600 hover:text-primary-800 flex items-center">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-1">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" />
+        </svg>
+        返回列表
+      </a>
+    </div>
+    
+    <h1 class="text-2xl font-bold mb-8">保利发展（600048.SH）历年MD&A</h1>
+    <ul class="space-y-4">
+      {years.map(year => (
+        <li>
+          <a href={`/TZB/mda/poly/${year}`} class="block card p-6 hover:shadow transition-shadow duration-300 cursor-pointer">
+            <div class="flex items-center justify-between">
+              <span class="text-lg font-semibold text-primary-700">{year} 年度</span>
+              <span class="btn btn-primary">查看</span>
+            </div>
+          </a>
+        </li>
+      ))}
+    </ul>
+  </div>
+</MainLayout> 

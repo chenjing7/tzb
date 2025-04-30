@@ -1,0 +1,181 @@
+---
+import MainLayout from '../../../layouts/MainLayout.astro';
+import { marked } from 'marked';
+
+export function getStaticPaths() {
+  // 模拟数据，实际项目中可从数据库或API获取
+  const companies = [
+    { id: 'alibaba', name: '阿里巴巴', code: 'BABA', years: [2023, 2022, 2021, 2020, 2019] },
+    { id: 'tencent', name: '腾讯控股', code: '00700', years: [2023, 2022, 2021, 2020, 2019] },
+    { id: 'meituan', name: '美团', code: '03690', years: [2023, 2022, 2021, 2020, 2019] },
+  ];
+
+  const paths = [];
+
+  // 为每个公司的每一年创建路径
+  companies.forEach(company => {
+    company.years.forEach(year => {
+      paths.push({
+        params: { company: company.id, year: year.toString() },
+        props: { company }
+      });
+    });
+    // 为每个公司添加latest路径
+    paths.push({
+      params: { company: company.id, year: 'latest' },
+      props: { company }
+    });
+  });
+
+  return paths;
+}
+
+const { company: companyParam, year: yearParam } = Astro.params;
+const { company } = Astro.props;
+
+// 模拟公司数据
+const companyData = {
+  id: company.id,
+  name: company.name,
+  code: company.code,
+  years: company.years,
+};
+
+// 处理'latest'路径
+const year = yearParam === 'latest' ? companyData.years[0] : parseInt(yearParam);
+
+// 模拟信件内容
+const letterContent = `
+# 致${companyData.name}集团股东的一封信（${year}年度）
+
+尊敬的各位股东：
+
+${year}财年是充满挑战与机遇的一年。面对复杂多变的外部环境，${companyData.name}集团继续为消费者、商家和合作伙伴创造价值。
+
+## 业务回顾与战略调整
+
+${year}财年，我们完成了对集团业务的全面梳理和组织重构，使各业务板块能够更加专注于各自的核心战略目标，提高决策效率，同时更好地应对市场竞争。
+
+## 财务表现
+
+虽然宏观环境充满挑战，我们的总体业务仍保持韧性。本财年，集团实现收入XXX亿元人民币，同比增长X%。
+
+## 投资与创新
+
+我们继续在技术创新领域进行战略投入，特别是在AI、云计算和物联网等领域。
+
+## 社会责任
+
+作为一家全球化企业，我们深知肩负的社会责任。过去一年，我们继续通过多种举措回馈社会，推动可持续发展。
+
+## 展望未来
+
+展望${year+1}财年，我们将聚焦三大战略方向：
+
+1. **加强核心业务竞争力**
+2. **全球化战略布局**
+3. **可持续发展**
+
+最后，我谨代表${companyData.name}集团董事会和管理层，衷心感谢所有股东、客户、员工和合作伙伴一直以来的支持与信任。
+
+CEO姓名
+董事会主席兼首席执行官
+${companyData.name}（股票代码：${companyData.code}）
+${year}年5月18日
+`;
+
+// 将Markdown转换为HTML
+const contentHtml = marked.parse(letterContent);
+---
+
+<MainLayout title={`${companyData.name} ${year}年度致股东信`} activeNav="letters">
+  <div class="max-w-5xl mx-auto">
+    <div class="flex items-center gap-4 mb-6">
+      <a href="/letters" class="text-primary-600 hover:text-primary-800 flex items-center">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-1">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" />
+        </svg>
+        返回列表
+      </a>
+    </div>
+    
+    <div class="card overflow-visible">
+      <div class="p-6 border-b border-secondary-100">
+        <div class="flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
+          <div>
+            <h1 class="text-2xl font-bold text-secondary-900">
+              {companyData.name} <span class="text-secondary-500 text-base ml-2">{companyData.code}</span>
+            </h1>
+            <p class="text-secondary-600 mt-1">
+              {year}年度致股东信
+            </p>
+          </div>
+          
+          <div class="flex gap-3">
+            <div class="relative">
+              <select 
+                id="year-select" 
+                class="appearance-none bg-white border border-secondary-200 rounded-lg pl-4 pr-10 py-2 focus:ring-primary-500 focus:border-primary-500"
+              >
+                {companyData.years.map(y => (
+                  <option value={y} selected={y === year}>{y}年</option>
+                ))}
+              </select>
+              <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-secondary-400">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+              </div>
+            </div>
+            
+            <div class="relative">
+              <select 
+                id="company-select" 
+                class="appearance-none bg-white border border-secondary-200 rounded-lg pl-4 pr-10 py-2 focus:ring-primary-500 focus:border-primary-500"
+              >
+                <option value="alibaba" selected={companyData.id === 'alibaba'}>阿里巴巴</option>
+                <option value="tencent" selected={companyData.id === 'tencent'}>腾讯控股</option>
+                <option value="meituan" selected={companyData.id === 'meituan'}>美团</option>
+                <option value="jd" selected={companyData.id === 'jd'}>京东</option>
+                <option value="pinduoduo" selected={companyData.id === 'pinduoduo'}>拼多多</option>
+              </select>
+              <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-secondary-400">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="p-6">
+        <article class="prose prose-stone lg:prose-lg max-w-none">
+          <div set:html={contentHtml} />
+        </article>
+      </div>
+    </div>
+  </div>
+</MainLayout>
+
+<script define:vars={{ companyId: companyData.id }}>
+  // 处理年份切换
+  const yearSelect = document.getElementById('year-select');
+  if (yearSelect) {
+    yearSelect.addEventListener('change', (e) => {
+      const selectedYear = e.target.value;
+      window.location.href = `/letters/${companyId}/${selectedYear}`;
+    });
+  }
+  
+  // 处理公司切换
+  const companySelect = document.getElementById('company-select');
+  if (companySelect) {
+    companySelect.addEventListener('change', (e) => {
+      const selectedCompany = e.target.value;
+      // 保持同一年份，切换公司
+      const currentYear = yearSelect ? yearSelect.value : new Date().getFullYear();
+      window.location.href = `/letters/${selectedCompany}/${currentYear}`;
+    });
+  }
+</script> 
