@@ -1,0 +1,263 @@
+---
+import MainLayout from '../../../layouts/MainLayout.astro';
+import fs from 'fs';
+import path from 'path';
+
+// 公司名称映射表
+const companyNameMap: Record<string, string> = {
+  'vanke': '万科A',
+  'poly': '保利发展',
+  // 可以在这里添加更多的公司名称映射
+};
+
+// 手动定义静态路径
+export function getStaticPaths() {
+  return [
+    // 万科A
+    { params: { company: 'vanke', year: '2024' } },
+    { params: { company: 'vanke', year: '2023' } },
+    { params: { company: 'vanke', year: '2022' } },
+    { params: { company: 'vanke', year: '2021' } },
+    // 保利发展
+    { params: { company: 'poly', year: '2023' } },
+    { params: { company: 'poly', year: '2022' } },
+    { params: { company: 'poly', year: '2021' } },
+  ];
+}
+
+const { company, year } = Astro.params;
+const currentYear = parseInt(year || '2024');
+
+// 获取公司显示名称
+const companyName = companyNameMap[company || ''] || company;
+
+// 读取MD文件内容
+let content = '';
+try {
+  // 构建文件路径
+  const filePath = path.resolve(process.cwd(), 'src', 'content', 'mda', company || '', `${year}.md`);
+  
+  if (fs.existsSync(filePath)) {
+    content = fs.readFileSync(filePath, 'utf-8');
+  } else {
+    console.error(`文件不存在: ${filePath}`);
+  }
+} catch (error) {
+  console.error('读取文件失败:', error);
+}
+
+// 可用年份列表 - 降序排列
+const availableYears = [2024, 2023, 2022, 2021];
+---
+
+<MainLayout title={`${companyName} ${year}年度管理层讨论与分析`} activeNav="mda">
+  <div class="max-w-6xl mx-auto px-4">
+    <div class="flex items-center gap-4 mb-6">
+      <a href="/tzb/mda" class="text-primary-600 hover:text-primary-800 flex items-center">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-1">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" />
+        </svg>
+        返回列表
+      </a>
+    </div>
+    
+    <div class="relative flex gap-16">
+      <div class="card overflow-visible flex-1 max-w-content">
+        <div class="p-6 border-b border-secondary-100">
+          <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+            <div>
+              <h1 class="text-2xl font-bold text-secondary-900">
+                {companyName}
+              </h1>
+              <p class="text-secondary-600 mt-1 mb-0">
+                {year}年度管理层讨论与分析
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="p-8 bg-white shadow-sm rounded-lg">
+          <!-- 显示内容 -->
+          {content ? (
+            <div class="markdown-content">
+              <div id="md-content" style="display: none">{content}</div>
+              <div id="md-display"></div>
+            </div>
+          ) : (
+            <div class="p-4 bg-yellow-100 text-yellow-800 rounded-md">
+              <p class="font-medium">无法加载内容</p>
+              <p>未找到 {companyName} {year}年度报告内容</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <!-- 垂直年份导航，位于右侧 -->
+      <div class="year-navigation">
+        {availableYears.map(y => (
+          <a 
+            href={`/tzb/mda/${company}/${y}`} 
+            class={`year-link ${y === currentYear ? 'active' : ''}`}
+          >
+            {y}年
+            {y === currentYear && (
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 ml-1 inline">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+              </svg>
+            )}
+          </a>
+        ))}
+      </div>
+    </div>
+  </div>
+
+  <style>
+    .max-w-content {
+      max-width: calc(100% - 120px);
+    }
+    
+    .year-navigation {
+      position: sticky;
+      top: 2rem;
+      height: fit-content;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      font-size: 0.9rem;
+      padding-top: 1rem;
+    }
+    
+    .year-link {
+      padding: 0.5rem 0.75rem;
+      color: #666;
+      transition: all 0.2s;
+      text-decoration: none;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      border-radius: 4px;
+    }
+    
+    .year-link:hover {
+      color: #333;
+      background-color: #f5f5f5;
+    }
+    
+    .year-link.active {
+      color: #f00;
+      font-weight: 500;
+      background-color: #fff;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Markdown 内容样式 */
+    .markdown-content {
+      max-width: 46em;
+      line-height: 1.8;
+      color: #2c3e50;
+      font-size: 1rem;
+    }
+
+    .markdown-content h1 {
+      font-size: 1.75rem;
+      font-weight: 600;
+      margin: 2.5rem 0 1.5rem;
+      color: #1a202c;
+    }
+
+    .markdown-content h2 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin: 2rem 0 1.25rem;
+      color: #1a202c;
+    }
+
+    .markdown-content h3 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin: 1.75rem 0 1rem;
+      color: #2d3748;
+    }
+
+    .markdown-content p {
+      margin: 1.25rem 0 2.3rem;
+      line-height: 1.8;
+    }
+
+    .markdown-content ul,
+    .markdown-content ol {
+      margin: 1.25rem 0;
+      padding-left: 1.5rem;
+    }
+
+    .markdown-content li {
+      margin: 0.5rem 0;
+      line-height: 1.7;
+    }
+
+    .markdown-content strong {
+      font-weight: 600;
+      color: #2d3748;
+    }
+
+    @media (max-width: 1100px) {
+      .year-navigation {
+        position: static;
+        flex-direction: row;
+        justify-content: flex-end;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+        padding-top: 0;
+      }
+
+      .max-w-content {
+        max-width: 100%;
+      }
+
+      .relative.flex.gap-16 {
+        flex-direction: column;
+        gap: 1rem;
+      }
+    }
+  </style>
+</MainLayout>
+
+<script>
+  // 客户端 JavaScript 处理 Markdown 渲染
+  document.addEventListener('DOMContentLoaded', () => {
+    const contentElement = document.getElementById('md-content');
+    const displayElement = document.getElementById('md-display');
+    
+    if (contentElement && displayElement) {
+      const content = contentElement.textContent || '';
+      
+      // 基本的 Markdown 处理
+      const formattedContent = content
+        // 处理标题
+        .replace(/^# (.*$)/gm, '<h1>$1</h1>')
+        .replace(/^## (.*$)/gm, '<h2>$1</h2>')
+        .replace(/^### (.*$)/gm, '<h3>$1</h3>')
+        // 处理段落
+        .replace(/^\s*(\n)?(.+)/gm, function(m) {
+          return /^<(\/)?(h\d|ul|ol|li|blockquote|pre|p)/.test(m) ? m : '<p>' + m + '</p>';
+        })
+        // 处理列表
+        .replace(/^\s*-\s(.+)/gm, '<ul><li>$1</li></ul>')
+        // 处理粗体和斜体
+        .replace(/\*\*(.*)\*\*/gm, '<strong>$1</strong>')
+        .replace(/\*(.*)\*/gm, '<em>$1</em>')
+        // 处理换行
+        .replace(/\n/gm, '<br>');
+      
+      // 清理处理后可能出现的多余标签
+      const cleanedContent = formattedContent
+        .replace(/<\/ul>\s*<ul>/g, '')
+        .replace(/<\/p><br><p>/g, '</p><p>')
+        .replace(/<p><br>/g, '<p>')
+        .replace(/<br><\/p>/g, '</p>');
+      
+      displayElement.innerHTML = cleanedContent;
+    }
+  });
+</script>

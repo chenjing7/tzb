@@ -29,4 +29,9 @@
   .card {
     @apply bg-white rounded-xl shadow-sm overflow-hidden;
   }
+  
+  /* 管理层讨论与分析页面段落间距 */
+  .mda-content p {
+    margin-bottom: 1rem;
+  }
 } 

@@ -22,15 +22,16 @@ const companies = [
 
 <script>
   // 搜索功能
-  const searchInput = document.getElementById('search');
-  const companyItems = document.querySelectorAll('.company-item');
+  const searchInput = document.getElementById('search') as HTMLInputElement;
+  const companyItems = document.querySelectorAll<HTMLElement>('.company-item');
   
   if (searchInput) {
     searchInput.addEventListener('input', (e) => {
-      const query = e.target.value.toLowerCase().trim();
+      const target = e.target as HTMLInputElement;
+      const query = target.value.toLowerCase().trim();
       
       companyItems.forEach(item => {
-        const text = item.textContent.toLowerCase();
+        const text = item.textContent?.toLowerCase() || '';
         if (query === '' || text.includes(query)) {
           item.style.display = '';
         } else {
