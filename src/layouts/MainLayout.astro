@@ -54,5 +54,13 @@ const { title, activeNav } = Astro.props;
         <slot />
       </main>
     </div>
+    
+    <script>
+      // Import the table enhancer utility
+      import { enhanceTableBorders } from '../utils/tableEnhancer.js';
+      
+      // Apply table border styles after page loads
+      document.addEventListener('DOMContentLoaded', enhanceTableBorders);
+    </script>
   </body>
 </html> 

@@ -1,0 +1,114 @@
+---
+// Props interface for the MarkdownTable component
+interface Props {
+  tableHtml: string;  // The HTML content of the table
+  title?: string;     // Optional title for the table
+  large?: boolean;    // Whether to enable the large table view
+  columnCount?: number; // Number of columns (for determining if it's a large table)
+}
+
+// Destructure props with defaults
+const { 
+  tableHtml, 
+  title = "表格",
+  large = false,
+  columnCount = 0
+} = Astro.props;
+
+// Automatically determine if it should be treated as a large table
+// Either by explicit large prop or by columnCount threshold
+const isLargeTable = large || columnCount > 7;
+---
+
+<div class={`table-container ${isLargeTable ? 'large-table' : ''}`} data-table-container>
+  {title && <div class="table-title">{title}</div>}
+  <div class="table-content" set:html={tableHtml} />
+  {isLargeTable && <button class="view-full-table" data-view-table>查看完整表格</button>}
+</div>
+
+{isLargeTable && (
+  <div class="table-modal-overlay" data-table-modal>
+    <div class="table-modal">
+      <div class="table-modal-header">
+        <h3 class="table-modal-title">{title}</h3>
+        <button class="table-modal-close" data-close-modal>&times;</button>
+      </div>
+      <div class="table-modal-content">
+        <div set:html={tableHtml} />
+      </div>
+    </div>
+  </div>
+)}
+
+<script>
+  // Initialize table modal functionality
+  function initTableModals() {
+    const tableContainers = document.querySelectorAll('[data-table-container]');
+    
+    tableContainers.forEach(container => {
+      const viewButton = container.querySelector('[data-view-table]');
+      const modalId = container.getAttribute('data-table-id');
+      const modal = document.querySelector(`[data-table-modal="${modalId}"]`) || 
+                    container.nextElementSibling;
+      
+      if (viewButton && modal) {
+        // Button to open modal
+        viewButton.addEventListener('click', () => {
+          modal.classList.add('active');
+          const modalContent = modal.querySelector('.table-modal');
+          if (modalContent) {
+            setTimeout(() => {
+              modalContent.classList.add('active');
+            }, 10);
+          }
+          document.body.style.overflow = 'hidden';
+        });
+        
+        // Close button and click outside to close
+        const closeButton = modal.querySelector('[data-close-modal]');
+        if (closeButton) {
+          closeButton.addEventListener('click', () => {
+            closeModal(modal);
+          });
+        }
+        
+        // Close when clicking overlay (outside the modal content)
+        modal.addEventListener('click', (e) => {
+          if (e.target === modal) {
+            closeModal(modal);
+          }
+        });
+        
+        // Close on escape key
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape' && modal.classList.contains('active')) {
+            closeModal(modal);
+          }
+        });
+      }
+    });
+    
+    function closeModal(modal: Element): void {
+      const modalContent = modal.querySelector('.table-modal');
+      if (modalContent) {
+        modalContent.classList.remove('active');
+      }
+      setTimeout(() => {
+        modal.classList.remove('active');
+        document.body.style.overflow = '';
+      }, 300);
+    }
+  }
+  
+  // Run initialization when the DOM is loaded
+  document.addEventListener('DOMContentLoaded', initTableModals);
+</script>
+
+<style>
+  .table-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 0.5rem;
+  }
+</style> 

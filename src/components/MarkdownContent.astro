@@ -1,0 +1,184 @@
+import { marked } from 'marked';
+
+interface Props {
+  content: string; // Raw markdown content
+}
+
+const { content } = Astro.props;
+
+// Parse the markdown to HTML
+const html = await marked.parse(content);
+
+<div class="markdown-content" id="markdown-container">
+  <div id="markdown-content" set:html={html} />
+</div>
+
+<script>
+  /**
+   * Initialize and enhance markdown tables after the content is loaded
+   */
+  function enhanceMarkdownTables() {
+    const container = document.getElementById('markdown-container');
+    if (!container) return;
+    
+    // Find all tables in the markdown content
+    const tables = container.querySelectorAll('table');
+    
+    tables.forEach((table, index) => {
+      // Ensure table has proper styling by adding inline styles
+      table.classList.add('markdown-table');
+      
+      // Apply direct inline styles to ensure borders are visible
+      table.setAttribute('style', 'border: 1px solid #1b3660 !important; border-collapse: collapse;');
+      
+      // Apply styles to table cells
+      const cells = table.querySelectorAll('th, td');
+      cells.forEach(cell => {
+        cell.setAttribute('style', 'border: 1px solid #1b3660 !important; border-bottom: 1px solid #1b3660 !important; border-right: 1px solid #1b3660 !important; padding: 0.7rem 1rem;');
+      });
+      
+      // Create wrapper elements
+      const tableContainer = document.createElement('div');
+      tableContainer.className = 'table-container';
+      tableContainer.dataset.tableId = `table-${index}`;
+      
+      // Determine if it's a large table by counting columns or checking overflow
+      const headerRow = table.querySelector('thead tr');
+      const columnCount = headerRow ? headerRow.children.length : 0;
+      const isLargeTable = columnCount > 7;
+      
+      // For large tables, add special handling
+      if (isLargeTable) {
+        tableContainer.classList.add('large-table');
+        
+        // Create "View full table" button
+        const viewButton = document.createElement('button');
+        viewButton.className = 'view-full-table';
+        viewButton.textContent = '查看完整表格';
+        viewButton.dataset.viewTable = '';
+        
+        // Add elements to DOM
+        table.parentNode?.insertBefore(tableContainer, table);
+        tableContainer.appendChild(table);
+        tableContainer.appendChild(viewButton);
+        
+        // Create modal for the table
+        createTableModal(table, index);
+        
+        // Add click event for the button
+        viewButton.addEventListener('click', () => {
+          const modal = document.querySelector(`[data-modal-id="modal-${index}"]`);
+          if (modal) {
+            openModal(modal);
+          }
+        });
+      } else {
+        // For regular tables, just add the container
+        table.parentNode?.insertBefore(tableContainer, table);
+        tableContainer.appendChild(table);
+      }
+    });
+    
+    // Add event listeners for modal close buttons
+    document.querySelectorAll('[data-close-modal]').forEach(button => {
+      button.addEventListener('click', () => {
+        const modal = button.closest('.table-modal-overlay');
+        if (modal) {
+          closeModal(modal);
+        }
+      });
+    });
+    
+    // Close modal when clicking outside
+    document.querySelectorAll('.table-modal-overlay').forEach(modal => {
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+          closeModal(modal);
+        }
+      });
+    });
+    
+    // Close modal with Escape key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        const openModal = document.querySelector('.table-modal-overlay.active');
+        if (openModal) {
+          closeModal(openModal);
+        }
+      }
+    });
+  }
+  
+  /**
+   * Create a modal for displaying a table in full view
+   */
+  function createTableModal(table: HTMLTableElement, index: number) {
+    // Create modal elements
+    const modalOverlay = document.createElement('div');
+    modalOverlay.className = 'table-modal-overlay';
+    modalOverlay.dataset.modalId = `modal-${index}`;
+    
+    const modal = document.createElement('div');
+    modal.className = 'table-modal';
+    
+    const modalHeader = document.createElement('div');
+    modalHeader.className = 'table-modal-header';
+    
+    const modalTitle = document.createElement('h3');
+    modalTitle.className = 'table-modal-title';
+    modalTitle.textContent = '完整表格';
+    
+    const closeButton = document.createElement('button');
+    closeButton.className = 'table-modal-close';
+    closeButton.innerHTML = '&times;';
+    closeButton.dataset.closeModal = '';
+    
+    const modalContent = document.createElement('div');
+    modalContent.className = 'table-modal-content';
+    
+    // Clone the table for the modal
+    const tableClone = table.cloneNode(true);
+    
+    // Assemble the modal
+    modalHeader.appendChild(modalTitle);
+    modalHeader.appendChild(closeButton);
+    modalContent.appendChild(tableClone);
+    modal.appendChild(modalHeader);
+    modal.appendChild(modalContent);
+    modalOverlay.appendChild(modal);
+    
+    // Add to the document
+    document.body.appendChild(modalOverlay);
+  }
+  
+  /**
+   * Open a table modal
+   */
+  function openModal(modal: Element) {
+    modal.classList.add('active');
+    setTimeout(() => {
+      const modalContent = modal.querySelector('.table-modal');
+      if (modalContent) {
+        modalContent.classList.add('active');
+      }
+    }, 10);
+    document.body.style.overflow = 'hidden';
+  }
+  
+  /**
+   * Close a table modal
+   */
+  function closeModal(modal: Element) {
+    const modalContent = modal.querySelector('.table-modal');
+    if (modalContent) {
+      modalContent.classList.remove('active');
+    }
+    setTimeout(() => {
+      modal.classList.remove('active');
+      document.body.style.overflow = '';
+    }, 300);
+  }
+  
+  // Initialize when the DOM is loaded
+  document.addEventListener('DOMContentLoaded', enhanceMarkdownTables);
+</script> 
