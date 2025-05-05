@@ -34,7 +34,7 @@ const years = [2024, 2023, 2022, 2021];
 <MainLayout title={`万科A ${year}年度管理层讨论与分析`} activeNav="mda">
   <div class="max-w-6xl mx-auto px-4">
     <div class="flex items-center gap-4 mb-6">
-      <a href="/tzb/mda" class="text-primary-600 hover:text-primary-800 flex items-center">
+      <a href="/tzb/mda" class="text-[#3570FF] hover:text-[#2860ef] flex items-center">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-1">
           <path stroke-linecap="round" stroke-linejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" />
         </svg>
@@ -71,9 +71,9 @@ const years = [2024, 2023, 2022, 2021];
             href={`/tzb/mda/vanke/${y}`} 
             class={`year-link ${y === currentYear ? 'active' : ''}`}
           >
-            {y}年
+            <span class="whitespace-nowrap">{y}年</span>
             {y === currentYear && (
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 ml-1 inline">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 ml-1">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
               </svg>
             )}
@@ -107,30 +107,6 @@ const years = [2024, 2023, 2022, 2021];
       gap: 0.75rem;
       font-size: 0.9rem;
       padding-top: 1rem;
-    }
-    
-    .year-link {
-      padding: 0.5rem 0.75rem;
-      color: #666;
-      transition: all 0.2s;
-      text-decoration: none;
-      white-space: nowrap;
-      display: flex;
-      align-items: center;
-      justify-content: flex-end;
-      border-radius: 4px;
-    }
-    
-    .year-link:hover {
-      color: #333;
-      background-color: #f5f5f5;
-    }
-    
-    .year-link.active {
-      color: #f00;
-      font-weight: 500;
-      background-color: #fff;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     }
 
     @media (max-width: 1100px) {

@@ -2,6 +2,7 @@
 // This is the frontmatter section with proper delimiters
 import '../styles/global.css';
 import '../styles/table.css';
+import logo from '../assets/logo.svg';
 
 interface Props {
   title: string;
@@ -16,15 +17,15 @@ const { title, activeNav } = Astro.props;
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{title} | TZB</title>
+    <title>{title} | TZB 投资从阅读开始</title>
   </head>
   <body class="bg-secondary-50 text-secondary-900">
     <div class="flex min-h-screen">
       <!-- Sidebar -->
       <aside class="fixed top-0 left-0 w-64 bg-white shadow-md h-screen flex flex-col">
-        <div class="p-6 border-b border-secondary-100">
+        <div class="p-4 border-b border-secondary-80">
           <a href="/tzb" class="block">
-            <h1 class="text-2xl font-bold text-primary-700 cursor-pointer">TZB</h1>
+            <img src={logo.src} alt="TZB Logo" class="h-8" />
           </a>
         </div>
         <nav class="p-4 flex-1">
@@ -32,7 +33,7 @@ const { title, activeNav } = Astro.props;
             <li>
               <a 
                 href="/tzb/mda" 
-                class={`block px-4 py-2 rounded-lg transition-colors ${activeNav === 'mda' ? 'bg-primary-50 text-primary-700 font-medium' : 'hover:bg-secondary-50'}`}
+                class={`nav-link ${activeNav === 'mda' ? 'active' : ''}`}
               >
                 管理层讨论与分析
               </a>
@@ -40,7 +41,7 @@ const { title, activeNav } = Astro.props;
             <li>
               <a 
                 href="/tzb/letters" 
-                class={`block px-4 py-2 rounded-lg transition-colors ${activeNav === 'letters' ? 'bg-primary-50 text-primary-700 font-medium' : 'hover:bg-secondary-50'}`}
+                class={`nav-link ${activeNav === 'letters' ? 'active' : ''}`}
               >
                 致股东信
               </a>

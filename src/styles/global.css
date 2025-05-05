@@ -6,32 +6,127 @@
   body {
     @apply antialiased;
     font-family: 'Inter', 'Noto Sans SC', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    color: #0F172A;
   }
   
   h1, h2, h3, h4, h5, h6 {
     @apply font-medium tracking-tight;
+    color: #0F172A;
+  }
+
+  /* 统一链接样式 */
+  a {
+    color: #0F172A;
+    @apply transition-colors duration-200;
+  }
+
+  a:hover {
+    color: #3570FF;
   }
 }
 
 @layer components {
   .btn {
-    @apply inline-flex items-center justify-center px-4 py-2 rounded-lg transition-colors font-medium;
+    @apply inline-flex items-center justify-center px-4 py-2 rounded-lg transition-colors duration-200 font-medium;
   }
   
   .btn-primary {
-    @apply bg-primary-600 text-white hover:bg-primary-700;
+    background-color: #3570FF;
+    @apply text-white;
+  }
+  
+  .btn-primary:hover {
+    background-color: #2860ef;
   }
   
   .btn-secondary {
-    @apply bg-secondary-100 text-secondary-800 hover:bg-secondary-200;
+    color: #64758B;
+    background-color: #F8FAFC;
+  }
+  
+  .btn-secondary:hover {
+    color: #0F172A;
+    background-color: #F1F5F9;
   }
   
   .card {
     @apply bg-white rounded-xl shadow-sm overflow-hidden;
   }
+
+  /* 导航链接样式 */
+  .nav-link {
+    @apply block px-4 py-2 rounded-lg transition-all duration-200;
+    color: #64758B;
+  }
+
+  .nav-link:hover {
+    color: #0F172A;
+    background-color: #F8FAFC;
+  }
+
+  .nav-link.active {
+    @apply font-medium;
+    color: #3570FF;
+    background-color: white;
+    border: 1px solid #E2E8F0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    transform: translateY(-1px);
+  }
+
+  .nav-link.active:hover {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+    transform: translateY(-2px);
+  }
+
+  /* 年份切换链接样式 */
+  .year-link {
+    @apply block px-4 py-2 rounded-lg transition-all duration-200;
+    color: #64758B;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    min-width: 100px;
+  }
+
+  .year-link:hover {
+    color: #0F172A;
+    background-color: #F8FAFC;
+  }
+
+  .year-link.active {
+    @apply font-medium;
+    color: #3570FF;
+    background-color: white;
+    border: 1px solid #E2E8F0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    transform: translateY(-1px);
+  }
+
+  .year-link.active:hover {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+    transform: translateY(-2px);
+  }
+
+  .year-link svg {
+    @apply ml-2;
+    width: 1rem;
+    height: 1rem;
+  }
   
   /* 管理层讨论与分析页面段落间距 */
   .mda-content p {
     margin-bottom: 1rem;
+    color: #64758B;
+  }
+
+  /* 内容区域链接样式 */
+  .content-link {
+    color: #0F172A;
+    border-bottom: 1px solid #E2E8F0;
+  }
+
+  .content-link:hover {
+    color: #3570FF;
+    border-bottom-color: #3570FF;
   }
 } 

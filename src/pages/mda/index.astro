@@ -58,7 +58,7 @@ const companies: Company[] = await Promise.all(companyIds.map(async id => {
 
 <MainLayout title="管理层讨论与分析" activeNav="mda">
   <div class="max-w-7xl mx-auto">
-    <div class="mb-8">
+    <div class="mb-6">
       <input 
         type="text" 
         id="companySearch" 
@@ -67,38 +67,64 @@ const companies: Company[] = await Promise.all(companyIds.map(async id => {
       />
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="companyGrid">
+    <div class="flex flex-wrap" id="companyGrid">
       {companies.map(company => (
-        <a 
-          href={`/tzb/mda/${company.id}/${company.latestYear}`} 
-          class="card p-6 hover:shadow-lg transition-shadow duration-300" 
-          data-company={company.name}
-        >
-          <div class="flex items-center">
-            <h2 class="text-lg font-semibold text-primary-700">{company.name}</h2>
-          </div>
-        </a>
+        <div class="company-item">
+          <a 
+            href={`/tzb/mda/${company.id}/${company.latestYear}`} 
+            class="company-link text-lg hover:text-[#3570FF] border-b border-[#E2E8F0] hover:border-[#3570FF] transition-colors duration-200 inline-block" 
+            data-company={company.name}
+          >
+            {company.name}
+          </a>
+        </div>
       ))}
     </div>
   </div>
+
+  <style>
+    .company-item {
+      width: calc(100% / 10);
+      padding-right: 1rem;
+      margin-bottom: 0.5rem;
+    }
+
+    @media (max-width: 1200px) {
+      .company-item {
+        width: calc(100% / 7);
+      }
+    }
+
+    @media (max-width: 768px) {
+      .company-item {
+        width: calc(100% / 5);
+      }
+    }
+
+    @media (max-width: 480px) {
+      .company-item {
+        width: calc(100% / 3);
+      }
+    }
+  </style>
 
   <script>
     const searchInput = document.getElementById('companySearch');
     const companyGrid = document.getElementById('companyGrid');
 
     if (searchInput && companyGrid) {
-      const companyCards = companyGrid.querySelectorAll('a');
+      const companyItems = companyGrid.querySelectorAll('.company-item');
 
       searchInput.addEventListener('input', (e) => {
         const target = e.target as HTMLInputElement;
         const searchTerm = target.value.toLowerCase();
         
-        companyCards.forEach(card => {
-          const companyName = card.getAttribute('data-company')?.toLowerCase() || '';
+        companyItems.forEach(item => {
+          const companyName = item.querySelector('a')?.getAttribute('data-company')?.toLowerCase() || '';
           if (companyName.includes(searchTerm)) {
-            card.style.display = '';
+            (item as HTMLElement).style.display = '';
           } else {
-            card.style.display = 'none';
+            (item as HTMLElement).style.display = 'none';
           }
         });
       });

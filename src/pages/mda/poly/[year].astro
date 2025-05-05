@@ -70,9 +70,9 @@ const years = [2023, 2022, 2021];
             href={`/tzb/mda/poly/${y}`} 
             class={`year-link ${y === currentYear ? 'active' : ''}`}
           >
-            {y}年
+            <span class="whitespace-nowrap">{y}年</span>
             {y === currentYear && (
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 ml-1 inline">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 ml-1">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
               </svg>
             )}
@@ -97,74 +97,7 @@ const years = [2023, 2022, 2021];
       font-size: 1rem;
       padding-top: 1rem;
     }
-    
-    .year-link {
-      padding: 0.5rem 0.75rem;
-      color: #777;
-      transition: all 0.2s;
-      text-decoration: none;
-      white-space: nowrap;
-    }
-    
-    .year-link:hover {
-      color: #333;
-    }
-    
-    .year-link.active {
-      color: #f00;
-      font-weight: 500;
-    }
 
-    /* 优化文章排版 */
-    .mda-content {
-      max-width: 46em;
-      line-height: 1.8;
-      color: #2c3e50;
-    }
-
-    .mda-content h1 {
-      font-size: 1.75rem;
-      font-weight: 600;
-      margin: 2.5rem 0 1.5rem;
-      color: #1a202c;
-    }
-
-    .mda-content h2 {
-      font-size: 1.5rem;
-      font-weight: 600;
-      margin: 2rem 0 1.25rem;
-      color: #1a202c;
-    }
-
-    .mda-content h3 {
-      font-size: 1.25rem;
-      font-weight: 600;
-      margin: 1.75rem 0 1rem;
-      color: #2d3748;
-    }
-
-    .mda-content p {
-      margin: 1.25rem 0 2.3rem;
-      font-size: 1rem;
-      line-height: 1.8;
-      letter-spacing: 0.01em;
-    }
-
-    .mda-content ul, .mda-content ol {
-      margin: 1.25rem 0;
-      padding-left: 1.5rem;
-    }
-
-    .mda-content li {
-      margin: 0.5rem 0;
-      line-height: 1.7;
-    }
-
-    .mda-content strong {
-      font-weight: 600;
-      color: #2d3748;
-    }
-    
     @media (max-width: 1100px) {
       .year-navigation {
         position: static;
