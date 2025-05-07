@@ -1,181 +1,229 @@
 ---
 import MainLayout from '../../../layouts/MainLayout.astro';
-import { marked } from 'marked';
+import BackToList from '../../../components/BackToList.astro';
+import fs from 'fs';
+import path from 'path';
 
-export function getStaticPaths() {
-  // 模拟数据，实际项目中可从数据库或API获取
-  const companies = [
-    { id: 'alibaba', name: '阿里巴巴', code: 'BABA', years: [2023, 2022, 2021, 2020, 2019] },
-    { id: 'tencent', name: '腾讯控股', code: '00700', years: [2023, 2022, 2021, 2020, 2019] },
-    { id: 'meituan', name: '美团', code: '03690', years: [2023, 2022, 2021, 2020, 2019] },
-  ];
-
-  const paths = [];
-
-  // 为每个公司的每一年创建路径
-  companies.forEach(company => {
-    company.years.forEach(year => {
-      paths.push({
-        params: { company: company.id, year: year.toString() },
-        props: { company }
-      });
-    });
-    // 为每个公司添加latest路径
-    paths.push({
-      params: { company: company.id, year: 'latest' },
-      props: { company }
-    });
-  });
-
-  return paths;
-}
-
-const { company: companyParam, year: yearParam } = Astro.params;
-const { company } = Astro.props;
-
-// 模拟公司数据
-const companyData = {
-  id: company.id,
-  name: company.name,
-  code: company.code,
-  years: company.years,
+// 公司名称映射表
+const companyNameMap: Record<string, string> = {
+  'vanke': '万科A',
+  'poly': '保利发展',
+  // 可以在这里添加更多的公司名称映射
 };
 
-// 处理'latest'路径
-const year = yearParam === 'latest' ? companyData.years[0] : parseInt(yearParam);
+// 手动定义静态路径
+export function getStaticPaths() {
+  return [
+    // 万科A
+    { params: { company: 'vanke', year: '2024' } },
+    { params: { company: 'vanke', year: '2023' } },
+    { params: { company: 'vanke', year: '2022' } },
+    // 可以添加更多公司和年份
+  ];
+}
 
-// 模拟信件内容
-const letterContent = `
-# 致${companyData.name}集团股东的一封信（${year}年度）
+const { company, year } = Astro.params;
+const currentYear = parseInt(year || '2024');
 
-尊敬的各位股东：
+// 获取公司显示名称
+const companyName = companyNameMap[company || ''] || company;
 
-${year}财年是充满挑战与机遇的一年。面对复杂多变的外部环境，${companyData.name}集团继续为消费者、商家和合作伙伴创造价值。
+// 读取MD文件内容
+let content = '';
+try {
+  // 构建文件路径
+  const filePath = path.resolve(process.cwd(), 'src', 'content', 'letters', company || '', `${year}.md`);
+  
+  if (fs.existsSync(filePath)) {
+    content = fs.readFileSync(filePath, 'utf-8');
+  } else {
+    console.error(`文件不存在: ${filePath}`);
+  }
+} catch (error) {
+  console.error('读取文件失败:', error);
+}
 
-## 业务回顾与战略调整
-
-${year}财年，我们完成了对集团业务的全面梳理和组织重构，使各业务板块能够更加专注于各自的核心战略目标，提高决策效率，同时更好地应对市场竞争。
-
-## 财务表现
-
-虽然宏观环境充满挑战，我们的总体业务仍保持韧性。本财年，集团实现收入XXX亿元人民币，同比增长X%。
-
-## 投资与创新
-
-我们继续在技术创新领域进行战略投入，特别是在AI、云计算和物联网等领域。
-
-## 社会责任
-
-作为一家全球化企业，我们深知肩负的社会责任。过去一年，我们继续通过多种举措回馈社会，推动可持续发展。
-
-## 展望未来
-
-展望${year+1}财年，我们将聚焦三大战略方向：
-
-1. **加强核心业务竞争力**
-2. **全球化战略布局**
-3. **可持续发展**
-
-最后，我谨代表${companyData.name}集团董事会和管理层，衷心感谢所有股东、客户、员工和合作伙伴一直以来的支持与信任。
-
-CEO姓名
-董事会主席兼首席执行官
-${companyData.name}（股票代码：${companyData.code}）
-${year}年5月18日
-`;
-
-// 将Markdown转换为HTML
-const contentHtml = marked.parse(letterContent);
+// 可用年份列表 - 降序排列
+const availableYears = [2024, 2023, 2022];
 ---
 
-<MainLayout title={`${companyData.name} ${year}年度致股东信`} activeNav="letters">
-  <div class="max-w-5xl mx-auto">
-    <div class="flex items-center gap-4 mb-6">
-      <a href="/letters" class="text-primary-600 hover:text-primary-800 flex items-center">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-1">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" />
-        </svg>
-        返回列表
-      </a>
+<MainLayout title={`${companyName} ${year}年度致股东信`} activeNav="letters">
+  <div class="max-w-6xl mx-auto px-4">
+    <div class="flex items-center mb-8">
+      <BackToList href="/tzb/letters" />
     </div>
     
-    <div class="card overflow-visible">
-      <div class="p-6 border-b border-secondary-100">
-        <div class="flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
-          <div>
-            <h1 class="text-2xl font-bold text-secondary-900">
-              {companyData.name} <span class="text-secondary-500 text-base ml-2">{companyData.code}</span>
-            </h1>
-            <p class="text-secondary-600 mt-1 mb-0">
-              {year}年度致股东信
-            </p>
-          </div>
-          
-          <div class="flex gap-3">
-            <div class="relative">
-              <select 
-                id="year-select" 
-                class="appearance-none bg-white border border-secondary-200 rounded-lg pl-4 pr-10 py-2 focus:ring-primary-500 focus:border-primary-500"
-              >
-                {companyData.years.map(y => (
-                  <option value={y} selected={y === year}>{y}年</option>
-                ))}
-              </select>
-              <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-secondary-400">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                </svg>
-              </div>
-            </div>
-            
-            <div class="relative">
-              <select 
-                id="company-select" 
-                class="appearance-none bg-white border border-secondary-200 rounded-lg pl-4 pr-10 py-2 focus:ring-primary-500 focus:border-primary-500"
-              >
-                <option value="alibaba" selected={companyData.id === 'alibaba'}>阿里巴巴</option>
-                <option value="tencent" selected={companyData.id === 'tencent'}>腾讯控股</option>
-                <option value="meituan" selected={companyData.id === 'meituan'}>美团</option>
-                <option value="jd" selected={companyData.id === 'jd'}>京东</option>
-                <option value="pinduoduo" selected={companyData.id === 'pinduoduo'}>拼多多</option>
-              </select>
-              <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-secondary-400">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                </svg>
-              </div>
+    <div class="relative flex gap-16">
+      <div class="card overflow-visible flex-1 max-w-content">
+        <div class="p-6 border-b border-secondary-100">
+          <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+            <div>
+              <h1 class="text-2xl font-bold text-secondary-900">
+                {companyName}
+              </h1>
+              <p class="text-secondary-600 mt-1 mb-0">
+                {year}年度致股东信
+              </p>
             </div>
           </div>
         </div>
+        
+        <div class="p-8 bg-white shadow-sm rounded-lg">
+          <!-- 显示内容 -->
+          {content ? (
+            <div class="markdown-content prose prose-slate max-w-none">
+              <div id="md-content" style="display: none">{content}</div>
+              <div id="md-display"></div>
+            </div>
+          ) : (
+            <div class="p-4 bg-yellow-100 text-yellow-800 rounded-md">
+              <p class="font-medium">无法加载内容</p>
+              <p>未找到 {companyName} {year}年度致股东信内容</p>
+            </div>
+          )}
+        </div>
       </div>
-      
-      <div class="p-6">
-        <article class="prose prose-stone lg:prose-lg max-w-none">
-          <div set:html={contentHtml} />
-        </article>
+
+      <!-- 垂直年份导航，位于右侧 -->
+      <div class="year-navigation">
+        {availableYears.map(y => (
+          <a 
+            href={`/tzb/letters/${company}/${y}`} 
+            class={`year-link ${y === currentYear ? 'active' : ''}`}
+          >
+            {y}年
+            {y === currentYear && (
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 ml-1 inline">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+              </svg>
+            )}
+          </a>
+        ))}
       </div>
     </div>
   </div>
+
+  <style>
+    .max-w-content {
+      max-width: calc(100% - 120px);
+    }
+    
+    .year-navigation {
+      position: sticky;
+      top: 2rem;
+      height: fit-content;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      font-size: 0.9rem;
+      padding-top: 1rem;
+    }
+
+    .markdown-content {
+      line-height: 1.8;
+    }
+
+    .markdown-content h1 {
+      font-size: 1.875rem;
+      font-weight: 600;
+      margin-top: 2rem;
+      margin-bottom: 1rem;
+      color: #1a202c;
+    }
+
+    .markdown-content h2 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-top: 1.75rem;
+      margin-bottom: 0.75rem;
+      color: #2d3748;
+    }
+
+    .markdown-content h3 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-top: 1.5rem;
+      margin-bottom: 0.5rem;
+      color: #4a5568;
+    }
+
+    .markdown-content p {
+      margin-bottom: 1.25rem;
+      color: #4a5568;
+    }
+
+    .markdown-content ul {
+      list-style-type: disc;
+      margin-left: 1.5rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .markdown-content li {
+      margin-bottom: 0.5rem;
+    }
+
+    .markdown-content strong {
+      font-weight: 600;
+      color: #2d3748;
+    }
+
+    @media (max-width: 1100px) {
+      .year-navigation {
+        position: static;
+        flex-direction: row;
+        justify-content: flex-end;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+        padding-top: 0;
+      }
+
+      .max-w-content {
+        max-width: 100%;
+      }
+
+      .relative.flex.gap-16 {
+        flex-direction: column;
+        gap: 1rem;
+      }
+    }
+  </style>
 </MainLayout>
 
-<script define:vars={{ companyId: companyData.id }}>
-  // 处理年份切换
-  const yearSelect = document.getElementById('year-select');
-  if (yearSelect) {
-    yearSelect.addEventListener('change', (e) => {
-      const selectedYear = e.target.value;
-      window.location.href = `/letters/${companyId}/${selectedYear}`;
-    });
-  }
-  
-  // 处理公司切换
-  const companySelect = document.getElementById('company-select');
-  if (companySelect) {
-    companySelect.addEventListener('change', (e) => {
-      const selectedCompany = e.target.value;
-      // 保持同一年份，切换公司
-      const currentYear = yearSelect ? yearSelect.value : new Date().getFullYear();
-      window.location.href = `/letters/${selectedCompany}/${currentYear}`;
-    });
-  }
+<script>
+  // 客户端 JavaScript 处理 Markdown 渲染
+  document.addEventListener('DOMContentLoaded', () => {
+    const contentElement = document.getElementById('md-content');
+    const displayElement = document.getElementById('md-display');
+    
+    if (contentElement && displayElement) {
+      const content = contentElement.textContent || '';
+      
+      // 基本的 Markdown 处理
+      const formattedContent = content
+        // 处理标题
+        .replace(/^# (.*$)/gm, '<h1>$1</h1>')
+        .replace(/^## (.*$)/gm, '<h2>$1</h2>')
+        .replace(/^### (.*$)/gm, '<h3>$1</h3>')
+        // 处理段落
+        .replace(/^\s*(\n)?(.+)/gm, function(m) {
+          return /^<(\/)?(h\d|ul|ol|li|blockquote|pre|p)/.test(m) ? m : '<p>' + m + '</p>';
+        })
+        // 处理列表
+        .replace(/^\s*-\s(.+)/gm, '<ul><li>$1</li></ul>')
+        // 处理粗体和斜体
+        .replace(/\*\*(.*)\*\*/gm, '<strong>$1</strong>')
+        .replace(/\*(.*)\*/gm, '<em>$1</em>')
+        // 处理换行
+        .replace(/\n/gm, '<br>');
+      
+      // 清理处理后可能出现的多余标签
+      const cleanedContent = formattedContent
+        .replace(/<\/ul>\s*<ul>/g, '')
+        .replace(/<\/p><br><p>/g, '</p><p>')
+        .replace(/<p><br>/g, '<p>')
+        .replace(/<br><\/p>/g, '</p>');
+      
+      displayElement.innerHTML = cleanedContent;
+    }
+  });
 </script> 

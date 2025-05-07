@@ -1,43 +1,133 @@
 ---
 import MainLayout from '../../layouts/MainLayout.astro';
+import * as fs from 'node:fs/promises';
+import * as path from 'node:path';
 
-// 模拟数据，实际项目中可从数据库或API获取
-const companies = [
-  { id: 'alibaba', name: '阿里巴巴', code: 'BABA', years: [2023, 2022, 2021, 2020, 2019] },
-  { id: 'tencent', name: '腾讯控股', code: '00700', years: [2023, 2022, 2021, 2020, 2019] },
-  { id: 'meituan', name: '美团', code: '03690', years: [2023, 2022, 2021, 2020, 2019] },
-  { id: 'jd', name: '京东', code: 'JD', years: [2023, 2022, 2021, 2020, 2019] },
-  { id: 'pinduoduo', name: '拼多多', code: 'PDD', years: [2023, 2022, 2021, 2020, 2019] },
-  { id: 'netease', name: '网易', code: 'NTES', years: [2023, 2022, 2021, 2020, 2019] },
-  { id: 'baidu', name: '百度', code: 'BIDU', years: [2023, 2022, 2021, 2020, 2019] },
-  { id: 'xiaomi', name: '小米集团', code: '01810', years: [2023, 2022, 2021, 2020, 2019] },
-];
+// Define company interface
+interface Company {
+  id: string;
+  name: string;
+  latestYear?: number;
+}
+
+// 获取公司所有可用年份
+async function getAvailableYears(company: string) {
+  try {
+    const lettersDir = path.resolve(`./src/content/letters/${company}`);
+    const files = await fs.readdir(lettersDir);
+    const years = files
+      .filter(file => file.endsWith('.md'))
+      .map(file => parseInt(file.replace('.md', '')))
+      .sort((a, b) => b - a); // 降序排列
+    return years;
+  } catch (error) {
+    console.error(`Error reading directory for ${company}: ${error}`);
+    return [];
+  }
+}
+
+// 使用import.meta.glob动态获取所有公司目录
+const letterFiles = await import.meta.glob('/src/content/letters/*/*.md', { eager: true });
+
+// 提取公司ID（目录名）
+const companyIds = Array.from(new Set(
+  Object.keys(letterFiles).map(path => {
+    const parts = path.split('/');
+    // 从路径中提取公司目录名
+    return parts[parts.length - 2];
+  })
+));
+
+// 公司名称映射表
+const companyNameMap: Record<string, string> = {
+  'vanke': '万科A',
+  'poly': '保利发展',
+  // 可以在这里添加更多的公司名称映射
+};
+
+// 构建公司列表并获取每个公司的最新年份
+const companies: Company[] = await Promise.all(companyIds.map(async id => {
+  const years = await getAvailableYears(id);
+  return {
+    id,
+    name: companyNameMap[id] || id,
+    latestYear: years[0] // 获取最新年份
+  };
+}));
 ---
 
 <MainLayout title="致股东信" activeNav="letters">
-  <div class="flex items-center justify-center h-full">
-    <h1 class="text-2xl font-bold">致股东信</h1>
-  </div>
-</MainLayout>
+  <div class="max-w-7xl mx-auto">
+    <div class="mb-6">
+      <input 
+        type="text" 
+        id="companySearch" 
+        placeholder="输入名称..." 
+        class="w-full max-w-md px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3570FF] focus:border-[#3570FF]"
+      />
+    </div>
 
-<script>
-  // 搜索功能
-  const searchInput = document.getElementById('search') as HTMLInputElement;
-  const companyItems = document.querySelectorAll<HTMLElement>('.company-item');
-  
-  if (searchInput) {
-    searchInput.addEventListener('input', (e) => {
-      const target = e.target as HTMLInputElement;
-      const query = target.value.toLowerCase().trim();
-      
-      companyItems.forEach(item => {
-        const text = item.textContent?.toLowerCase() || '';
-        if (query === '' || text.includes(query)) {
-          item.style.display = '';
-        } else {
-          item.style.display = 'none';
-        }
+    <div class="flex flex-wrap" id="companyGrid">
+      {companies.map(company => (
+        <div class="company-item">
+          <a 
+            href={`/tzb/letters/${company.id}/${company.latestYear}`} 
+            class="company-link text-lg hover:text-[#3570FF] border-b border-[#E2E8F0] hover:border-[#3570FF] transition-colors duration-200 inline-block" 
+            data-company={company.name}
+          >
+            {company.name}
+          </a>
+        </div>
+      ))}
+    </div>
+  </div>
+
+  <style>
+    .company-item {
+      width: calc(100% / 10);
+      padding-right: 1rem;
+      margin-bottom: 0.5rem;
+    }
+
+    @media (max-width: 1200px) {
+      .company-item {
+        width: calc(100% / 7);
+      }
+    }
+
+    @media (max-width: 768px) {
+      .company-item {
+        width: calc(100% / 5);
+      }
+    }
+
+    @media (max-width: 480px) {
+      .company-item {
+        width: calc(100% / 3);
+      }
+    }
+  </style>
+
+  <script>
+    const searchInput = document.getElementById('companySearch');
+    const companyGrid = document.getElementById('companyGrid');
+
+    if (searchInput && companyGrid) {
+      const companyItems = companyGrid.querySelectorAll('.company-item');
+
+      searchInput.addEventListener('input', (e) => {
+        const target = e.target as HTMLInputElement;
+        const searchTerm = target.value.toLowerCase();
+        
+        companyItems.forEach(item => {
+          const companyName = item.querySelector('a')?.getAttribute('data-company')?.toLowerCase() || '';
+          if (companyName.includes(searchTerm)) {
+            (item as HTMLElement).style.display = '';
+          } else {
+            (item as HTMLElement).style.display = 'none';
+          }
+        });
       });
-    });
-  }
-</script> 
+    }
+  </script>
+</MainLayout> 

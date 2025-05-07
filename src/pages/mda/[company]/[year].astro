@@ -1,5 +1,6 @@
 ---
 import MainLayout from '../../../layouts/MainLayout.astro';
+import BackToList from '../../../components/BackToList.astro';
 import fs from 'fs';
 import path from 'path';
 
@@ -52,13 +53,8 @@ const availableYears = [2024, 2023, 2022, 2021];
 
 <MainLayout title={`${companyName} ${year}年度管理层讨论与分析`} activeNav="mda">
   <div class="max-w-6xl mx-auto px-4">
-    <div class="flex items-center gap-4 mb-6">
-      <a href="/tzb/mda" class="text-[#3570FF] hover:text-[#2860ef] flex items-center">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-1">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" />
-        </svg>
-        返回列表
-      </a>
+    <div class="flex items-center mb-8">
+      <BackToList href="/tzb/mda" />
     </div>
     
     <div class="relative flex gap-16">

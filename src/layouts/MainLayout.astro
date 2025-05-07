@@ -17,12 +17,12 @@ const { title, activeNav } = Astro.props;
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{title} | TZB 投资从阅读开始</title>
+    <title>{title} | TZB 翻阅每一页</title>
   </head>
   <body class="bg-secondary-50 text-secondary-900">
     <div class="flex min-h-screen">
       <!-- Sidebar -->
-      <aside class="fixed top-0 left-0 w-64 bg-white shadow-md h-screen flex flex-col">
+      <aside class="fixed top-0 left-0 w-56 bg-white shadow-md h-screen flex flex-col">
         <div class="p-4 border-b border-secondary-80">
           <a href="/tzb" class="block">
             <img src={logo.src} alt="TZB Logo" class="h-8" />
@@ -51,7 +51,7 @@ const { title, activeNav } = Astro.props;
       </aside>
 
       <!-- Main content -->
-      <main class="flex-1 ml-64 p-8 max-w-none">
+      <main class="flex-1 ml-56 p-8 max-w-none">
         <slot />
       </main>
     </div>

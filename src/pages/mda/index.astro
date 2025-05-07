@@ -8,6 +8,7 @@ interface Company {
   id: string;
   name: string;
   latestYear?: number;
+  order?: number;  // 添加排序字段
 }
 
 // 获取公司所有可用年份
@@ -38,11 +39,11 @@ const companyIds = Array.from(new Set(
   })
 ));
 
-// 公司名称映射表
-const companyNameMap: Record<string, string> = {
-  'vanke': '万科A',
-  'poly': '保利发展',
-  // 可以在这里添加更多的公司名称映射
+// 公司名称映射表和排序表
+const companyConfig: Record<string, { name: string; order: number }> = {
+  'vanke': { name: '万科A', order: 1 },
+  'poly': { name: '保利发展', order: 2 },
+  // 可以在这里添加更多的公司配置，order 数字越小越靠前
 };
 
 // 构建公司列表并获取每个公司的最新年份
@@ -50,10 +51,14 @@ const companies: Company[] = await Promise.all(companyIds.map(async id => {
   const years = await getAvailableYears(id);
   return {
     id,
-    name: companyNameMap[id] || id,
-    latestYear: years[0] // 获取最新年份
+    name: companyConfig[id]?.name || id,
+    latestYear: years[0], // 获取最新年份
+    order: companyConfig[id]?.order || 999 // 未配置的公司排在最后
   };
 }));
+
+// 按照 order 字段排序
+const sortedCompanies = companies.sort((a, b) => a.order! - b.order!);
 ---
 
 <MainLayout title="管理层讨论与分析" activeNav="mda">
@@ -63,12 +68,12 @@ const companies: Company[] = await Promise.all(companyIds.map(async id => {
         type="text" 
         id="companySearch" 
         placeholder="搜索公司..." 
-        class="w-full max-w-md px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+        class="w-full max-w-md px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3570FF] focus:border-[#3570FF]"
       />
     </div>
 
     <div class="flex flex-wrap" id="companyGrid">
-      {companies.map(company => (
+      {sortedCompanies.map(company => (
         <div class="company-item">
           <a 
             href={`/tzb/mda/${company.id}/${company.latestYear}`} 
