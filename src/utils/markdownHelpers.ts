@@ -17,38 +17,14 @@ export function countTableColumns(tableStr: string): number {
 }
 
 /**
- * Process markdown content with enhanced table handling
+ * Simple markdown processing function that handles basic markdown to HTML conversion
  */
 export async function processMarkdown(markdown: string): Promise<string> {
-  // Create a custom renderer
-  const renderer = new marked.Renderer();
-  
-  // Override the table renderer to ensure tables get the right class
-  // The token param is provided by marked internally when calling this method
-  renderer.table = function(token: any) {
-    const header = this.parser.parseInline(token.header);
-    const body = this.parser.parseInline(token.rows || []);
-    
-    // Generate the table HTML with the markdown-table class
-    const tableHtml = `<table class="markdown-table"><thead>${header}</thead><tbody>${body}</tbody></table>`;
-    
-    // Put the table inside a container div for better handling
-    return `<div class="table-container">${tableHtml}</div>`;
-  };
-  
-  // Setup marked options
-  marked.use({ 
-    renderer,
-    gfm: true, // GitHub flavored markdown
-    breaks: false
-  });
-  
-  // Parse the markdown content
-  return marked.parse(markdown);
+  return await marked.parse(markdown);
 }
 
 /**
- * Enhanced markdown processing that detects and handles large tables
+ * Process markdown content with enhanced table handling
  */
 export async function enhancedMarkdownProcessing(markdown: string): Promise<string> {
   // Extract tables from markdown for special processing

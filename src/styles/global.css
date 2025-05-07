@@ -80,12 +80,11 @@
 
   /* 年份切换链接样式 */
   .year-link {
-    @apply block px-4 py-2 rounded-lg transition-all duration-200;
+    @apply block px-3 py-1.5 rounded-lg transition-all duration-200;
     color: #64758B;
     display: flex;
     align-items: center;
-    justify-content: flex-end;
-    min-width: 100px;
+    white-space: nowrap;
   }
 
   .year-link:hover {
@@ -99,16 +98,14 @@
     background-color: white;
     border: 1px solid #E2E8F0;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-    transform: translateY(-1px);
   }
 
   .year-link.active:hover {
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
-    transform: translateY(-2px);
   }
 
   .year-link svg {
-    @apply ml-2;
+    @apply ml-1;
     width: 1rem;
     height: 1rem;
   }

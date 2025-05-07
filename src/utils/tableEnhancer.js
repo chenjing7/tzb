@@ -29,7 +29,15 @@ export function enhanceTables(containerId = 'markdown-container') {
       // Create "View full table" button
       const viewButton = document.createElement('button');
       viewButton.className = 'view-full-table';
-      viewButton.textContent = '查看完整表格';
+      viewButton.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon">
+          <path d="M15 3h6v6"></path>
+          <path d="M9 21H3v-6"></path>
+          <path d="M21 3l-7 7"></path>
+          <path d="M3 21l7-7"></path>
+        </svg>
+        查看完整表格
+      `;
       viewButton.dataset.viewTable = '';
       
       // Add elements to DOM

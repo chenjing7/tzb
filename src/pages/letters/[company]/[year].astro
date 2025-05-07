@@ -1,6 +1,8 @@
 ---
 import MainLayout from '../../../layouts/MainLayout.astro';
 import BackToList from '../../../components/BackToList.astro';
+import MarkdownContent from '../../../components/MarkdownContent.astro';
+import YearNavigation from '../../../components/YearNavigation.astro';
 import fs from 'fs';
 import path from 'path';
 
@@ -53,7 +55,7 @@ const availableYears = [2024, 2023, 2022];
       <BackToList href="/tzb/letters" />
     </div>
     
-    <div class="relative flex gap-16">
+    <div class="relative flex gap-8">
       <div class="card overflow-visible flex-1 max-w-content">
         <div class="p-6 border-b border-secondary-100">
           <div class="flex flex-col sm:flex-row sm:items-center gap-4">
@@ -71,10 +73,7 @@ const availableYears = [2024, 2023, 2022];
         <div class="p-8 bg-white shadow-sm rounded-lg">
           <!-- 显示内容 -->
           {content ? (
-            <div class="markdown-content prose prose-slate max-w-none">
-              <div id="md-content" style="display: none">{content}</div>
-              <div id="md-display"></div>
-            </div>
+            <MarkdownContent content={content} />
           ) : (
             <div class="p-4 bg-yellow-100 text-yellow-800 rounded-md">
               <p class="font-medium">无法加载内容</p>
@@ -84,22 +83,13 @@ const availableYears = [2024, 2023, 2022];
         </div>
       </div>
 
-      <!-- 垂直年份导航，位于右侧 -->
-      <div class="year-navigation">
-        {availableYears.map(y => (
-          <a 
-            href={`/tzb/letters/${company}/${y}`} 
-            class={`year-link ${y === currentYear ? 'active' : ''}`}
-          >
-            {y}年
-            {y === currentYear && (
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 ml-1 inline">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
-              </svg>
-            )}
-          </a>
-        ))}
-      </div>
+      <!-- 使用共享年份导航组件 -->
+      <YearNavigation 
+        availableYears={availableYears} 
+        currentYear={currentYear} 
+        company={company || ''} 
+        type="letters"
+      />
     </div>
   </div>
 
@@ -108,122 +98,15 @@ const availableYears = [2024, 2023, 2022];
       max-width: calc(100% - 120px);
     }
     
-    .year-navigation {
-      position: sticky;
-      top: 2rem;
-      height: fit-content;
-      display: flex;
-      flex-direction: column;
-      gap: 0.75rem;
-      font-size: 0.9rem;
-      padding-top: 1rem;
-    }
-
-    .markdown-content {
-      line-height: 1.8;
-    }
-
-    .markdown-content h1 {
-      font-size: 1.875rem;
-      font-weight: 600;
-      margin-top: 2rem;
-      margin-bottom: 1rem;
-      color: #1a202c;
-    }
-
-    .markdown-content h2 {
-      font-size: 1.5rem;
-      font-weight: 600;
-      margin-top: 1.75rem;
-      margin-bottom: 0.75rem;
-      color: #2d3748;
-    }
-
-    .markdown-content h3 {
-      font-size: 1.25rem;
-      font-weight: 600;
-      margin-top: 1.5rem;
-      margin-bottom: 0.5rem;
-      color: #4a5568;
-    }
-
-    .markdown-content p {
-      margin-bottom: 1.25rem;
-      color: #4a5568;
-    }
-
-    .markdown-content ul {
-      list-style-type: disc;
-      margin-left: 1.5rem;
-      margin-bottom: 1.25rem;
-    }
-
-    .markdown-content li {
-      margin-bottom: 0.5rem;
-    }
-
-    .markdown-content strong {
-      font-weight: 600;
-      color: #2d3748;
-    }
-
     @media (max-width: 1100px) {
-      .year-navigation {
-        position: static;
-        flex-direction: row;
-        justify-content: flex-end;
-        gap: 0.5rem;
-        margin-bottom: 1rem;
-        padding-top: 0;
-      }
-
       .max-w-content {
         max-width: 100%;
       }
 
-      .relative.flex.gap-16 {
+      .relative.flex.gap-8 {
         flex-direction: column;
         gap: 1rem;
       }
     }
   </style>
-</MainLayout>
-
-<script>
-  // 客户端 JavaScript 处理 Markdown 渲染
-  document.addEventListener('DOMContentLoaded', () => {
-    const contentElement = document.getElementById('md-content');
-    const displayElement = document.getElementById('md-display');
-    
-    if (contentElement && displayElement) {
-      const content = contentElement.textContent || '';
-      
-      // 基本的 Markdown 处理
-      const formattedContent = content
-        // 处理标题
-        .replace(/^# (.*$)/gm, '<h1>$1</h1>')
-        .replace(/^## (.*$)/gm, '<h2>$1</h2>')
-        .replace(/^### (.*$)/gm, '<h3>$1</h3>')
-        // 处理段落
-        .replace(/^\s*(\n)?(.+)/gm, function(m) {
-          return /^<(\/)?(h\d|ul|ol|li|blockquote|pre|p)/.test(m) ? m : '<p>' + m + '</p>';
-        })
-        // 处理列表
-        .replace(/^\s*-\s(.+)/gm, '<ul><li>$1</li></ul>')
-        // 处理粗体和斜体
-        .replace(/\*\*(.*)\*\*/gm, '<strong>$1</strong>')
-        .replace(/\*(.*)\*/gm, '<em>$1</em>')
-        // 处理换行
-        .replace(/\n/gm, '<br>');
-      
-      // 清理处理后可能出现的多余标签
-      const cleanedContent = formattedContent
-        .replace(/<\/ul>\s*<ul>/g, '')
-        .replace(/<\/p><br><p>/g, '</p><p>')
-        .replace(/<p><br>/g, '<p>')
-        .replace(/<br><\/p>/g, '</p>');
-      
-      displayElement.innerHTML = cleanedContent;
-    }
-  });
-</script> 
+</MainLayout> 

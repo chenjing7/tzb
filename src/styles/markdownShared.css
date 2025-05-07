@@ -1,0 +1,170 @@
+/* Shared Markdown Content Styles */
+.markdown-content {
+  line-height: 1.8;
+  color: #2c3e50;
+}
+
+/* Typography */
+.markdown-content h1,
+.markdown-content h2,
+.markdown-content h3,
+.markdown-content h4,
+.markdown-content h5,
+.markdown-content h6 {
+  font-weight: 600;
+  line-height: 1.3;
+  margin-top: 1.8em;
+  margin-bottom: 1em;
+  color: #1a202c;
+}
+
+.markdown-content h1 {
+  font-size: 1.875rem;
+}
+
+.markdown-content h2 {
+  font-size: 1.5rem;
+  color: #2d3748;
+}
+
+.markdown-content h3 {
+  font-size: 1.25rem;
+  color: #4a5568;
+}
+
+.markdown-content p {
+  margin: 0 0 1.25rem 0;
+  color: #4a5568;
+}
+
+.markdown-content ul,
+.markdown-content ol {
+  margin: 0 0 1.25rem 1.5rem;
+  padding: 0;
+}
+
+.markdown-content li {
+  margin-bottom: 0.5rem;
+}
+
+.markdown-content strong {
+  font-weight: 600;
+  color: #2d3748;
+}
+
+/* Table Styles */
+.table-container {
+  width: 100%;
+  overflow-x: auto;
+  margin-bottom: 1.5rem;
+  position: relative;
+}
+
+.markdown-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid #1b3660;
+}
+
+.markdown-table th,
+.markdown-table td {
+  border: 1px solid #1b3660;
+  padding: 0.7rem 1rem;
+  text-align: left;
+}
+
+.markdown-table th {
+  background-color: #f7fafc;
+  font-weight: 600;
+}
+
+/* Large table handling */
+.large-table {
+  position: relative;
+  padding-bottom: 3rem;
+}
+
+.view-full-table {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  background-color: #4299e1;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: background-color 0.2s;
+}
+
+.view-full-table:hover {
+  background-color: #3182ce;
+}
+
+/* Table Modal */
+.table-modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.table-modal-overlay.active {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 1;
+}
+
+.table-modal {
+  background-color: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  width: 90%;
+  max-width: 1200px;
+  max-height: 90vh;
+  overflow: hidden;
+  transform: translateY(20px);
+  opacity: 0;
+  transition: transform 0.3s, opacity 0.3s;
+}
+
+.table-modal.active {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+.table-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.table-modal-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.table-modal-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #718096;
+}
+
+.table-modal-content {
+  padding: 1.5rem;
+  overflow: auto;
+  max-height: calc(90vh - 4rem);
+} 

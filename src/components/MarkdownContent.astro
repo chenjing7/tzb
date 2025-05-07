@@ -1,4 +1,6 @@
+---
 import { marked } from 'marked';
+import '../styles/markdownShared.css';
 
 interface Props {
   content: string; // Raw markdown content
@@ -8,8 +10,9 @@ const { content } = Astro.props;
 
 // Parse the markdown to HTML
 const html = await marked.parse(content);
+---
 
-<div class="markdown-content" id="markdown-container">
+<div class="markdown-content prose prose-slate max-w-none" id="markdown-container">
   <div id="markdown-content" set:html={html} />
 </div>
 
@@ -25,24 +28,15 @@ const html = await marked.parse(content);
     const tables = container.querySelectorAll('table');
     
     tables.forEach((table, index) => {
-      // Ensure table has proper styling by adding inline styles
+      // Ensure table has proper styling by adding classes
       table.classList.add('markdown-table');
-      
-      // Apply direct inline styles to ensure borders are visible
-      table.setAttribute('style', 'border: 1px solid #1b3660 !important; border-collapse: collapse;');
-      
-      // Apply styles to table cells
-      const cells = table.querySelectorAll('th, td');
-      cells.forEach(cell => {
-        cell.setAttribute('style', 'border: 1px solid #1b3660 !important; border-bottom: 1px solid #1b3660 !important; border-right: 1px solid #1b3660 !important; padding: 0.7rem 1rem;');
-      });
       
       // Create wrapper elements
       const tableContainer = document.createElement('div');
       tableContainer.className = 'table-container';
       tableContainer.dataset.tableId = `table-${index}`;
       
-      // Determine if it's a large table by counting columns or checking overflow
+      // Determine if it's a large table by counting columns or checking width
       const headerRow = table.querySelector('thead tr');
       const columnCount = headerRow ? headerRow.children.length : 0;
       const isLargeTable = columnCount > 7;
@@ -54,7 +48,15 @@ const html = await marked.parse(content);
         // Create "View full table" button
         const viewButton = document.createElement('button');
         viewButton.className = 'view-full-table';
-        viewButton.textContent = '查看完整表格';
+        viewButton.innerHTML = `
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon">
+            <path d="M15 3h6v6"></path>
+            <path d="M9 21H3v-6"></path>
+            <path d="M21 3l-7 7"></path>
+            <path d="M3 21l7-7"></path>
+          </svg>
+          查看完整表格
+        `;
         viewButton.dataset.viewTable = '';
         
         // Add elements to DOM
