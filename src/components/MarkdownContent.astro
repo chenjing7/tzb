@@ -35,21 +35,57 @@ const html = await marked.parse(processedContent);
     processHoverCharts();
   });
   
+  // Define hasDataLabelsPlugin at script scope so it's accessible to all functions
+  let hasDataLabelsPlugin = false;
+  
+  // Track chart instances to destroy them before reuse
+  const chartInstances = {};
+  
   /**
    * Process HoverChart elements that were preprocessed server-side
    */
   function processHoverCharts() {
-    // 动态加载必要的库
-    Promise.all([
-      loadScript('https://unpkg.com/@popperjs/core@2'),
-      loadScript('https://unpkg.com/tippy.js@6'),
-      loadScript('https://cdn.jsdelivr.net/npm/chart.js'),
-      loadCSS('https://unpkg.com/tippy.js@6/dist/tippy.css')
-    ]).then(() => {
-      initializeCharts();
-    }).catch(error => {
-      console.error('Failed to load dependencies:', error);
-    });
+    // First, load Popper.js as it's a dependency for tippy.js
+    loadScript('https://unpkg.com/@popperjs/core@2')
+      .then(() => {
+        // Then load tippy.js and its CSS
+        return Promise.all([
+          loadScript('https://unpkg.com/tippy.js@6'),
+          loadCSS('https://unpkg.com/tippy.js@6/dist/tippy.css')
+        ]);
+      })
+      .then(() => {
+        // Finally load Chart.js
+        return loadScript('https://cdn.jsdelivr.net/npm/chart.js');
+      })
+      .then(() => {
+        // Load Chart.js datalabels plugin
+        return loadScript('https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0');
+      })
+      .then(() => {
+        // Once all libraries are loaded, initialize charts
+        initializeCharts();
+      })
+      .catch(error => {
+        console.error('Failed to load dependencies:', error);
+        // Try with alternative CDN sources as fallback
+        console.log('Trying fallback sources...');
+        
+        // Fallback loading with different CDNs
+        loadScript('https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.7/dist/umd/popper.min.js')
+          .then(() => Promise.all([
+            loadScript('https://cdn.jsdelivr.net/npm/tippy.js@6.3.7/dist/tippy.umd.min.js'),
+            loadCSS('https://cdn.jsdelivr.net/npm/tippy.js@6.3.7/dist/tippy.css')
+          ]))
+          .then(() => loadScript('https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js'))
+          .then(() => loadScript('https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0'))
+          .then(() => {
+            initializeCharts();
+          })
+          .catch(fallbackError => {
+            console.error('Fallback loading also failed:', fallbackError);
+          });
+      });
   }
   
   function loadScript(url) {
@@ -75,6 +111,19 @@ const html = await marked.parse(processedContent);
   }
   
   function initializeCharts() {
+    // First check if the required libraries are loaded
+    if (typeof tippy === 'undefined' || typeof Chart === 'undefined') {
+      console.error('Required libraries not loaded. Retrying in 500ms...');
+      setTimeout(initializeCharts, 500);
+      return;
+    }
+    
+    // Check if ChartDataLabels plugin is loaded
+    hasDataLabelsPlugin = typeof ChartDataLabels !== 'undefined';
+    if (!hasDataLabelsPlugin) {
+      console.warn('ChartDataLabels plugin not loaded. Charts will not show data labels.');
+    }
+    
     // Process all stored hover charts
     hoverCharts.forEach((chart, index) => {
       const elementId = `hover-chart-${index}`;
@@ -91,24 +140,69 @@ const html = await marked.parse(processedContent);
       
       console.log('Setting up hover chart:', chart.key, chart.value);
       
-      // Initialize tippy
-      tippy(element, {
-        content: `<div class="chart-tooltip"><canvas id="chart-${chart.key}"></canvas></div>`,
-        allowHTML: true,
-        interactive: true,
-        appendTo: document.body,
-        trigger: 'mouseenter focus',
-        placement: 'top',
-        arrow: true,
-        theme: 'light',
-        maxWidth: 350,
-        onShow(instance) {
-          console.log('Tooltip shown, creating chart:', chart.key);
-          setTimeout(() => {
-            createChart(chart.key, `chart-${chart.key}`);
-          }, 10);
-        }
-      });
+      try {
+        // Initialize tippy with error handling
+        tippy(element, {
+          content: `<div class="chart-tooltip"><canvas id="chart-${chart.key}"></canvas></div>`,
+          allowHTML: true,
+          interactive: true,
+          appendTo: document.body,
+          trigger: 'mouseenter focus',
+          placement: 'top',
+          arrow: true,
+          theme: 'light',
+          maxWidth: 'none', // Allow the tooltip to size based on content
+          onShow(instance) {
+            console.log('Tooltip shown, creating chart:', chart.key);
+            
+            // Fetch data to determine appropriate size
+            fetch(`/tzb/data/${chart.key}.json`)
+              .then(response => response.json())
+              .then(data => {
+                if (!data[chart.key]) return;
+                
+                const chartData = data[chart.key];
+                const dataPoints = chartData.length;
+                
+                // Calculate appropriate dimensions based on data points
+                let tooltipWidth = Math.max(350, dataPoints * 70);
+                let tooltipHeight = Math.min(220, 180 + (dataPoints > 5 ? 20 : 0));
+                
+                // Handle very large datasets
+                if (dataPoints > 10) {
+                  tooltipWidth = Math.min(800, tooltipWidth); // Cap at 800px
+                }
+                
+                // Adjust for mobile screens
+                if (window.innerWidth < 768) {
+                  tooltipWidth = Math.min(window.innerWidth - 40, tooltipWidth);
+                  tooltipHeight = Math.min(200, tooltipWidth * 0.55);
+                }
+                
+                // Apply the calculated dimensions
+                const tooltipContent = instance.popper.querySelector('.chart-tooltip');
+                if (tooltipContent) {
+                  tooltipContent.style.width = `${tooltipWidth}px`;
+                  tooltipContent.style.height = `${tooltipHeight}px`;
+                }
+                
+                // Create chart after setting dimensions
+                setTimeout(() => {
+                  createChart(chart.key, `chart-${chart.key}`);
+                }, 10);
+              })
+              .catch(error => {
+                console.error('Error fetching data for tooltip sizing:', error);
+                // Fallback to creating chart with default size
+                setTimeout(() => {
+                  createChart(chart.key, `chart-${chart.key}`);
+                }, 10);
+              });
+          }
+        });
+      } catch (error) {
+        console.error('Error initializing tippy for chart:', chart.key, error);
+      }
     });
   }
   
@@ -281,6 +375,12 @@ const html = await marked.parse(processedContent);
    */
   async function createChart(chartKey, canvasId) {
     try {
+      // Destroy existing chart instance if it exists
+      if (chartInstances[canvasId]) {
+        chartInstances[canvasId].destroy();
+        delete chartInstances[canvasId];
+      }
+      
       // Fetch chart data
       const response = await fetch(`/tzb/data/${chartKey}.json`);
       console.log('Fetching data from:', `/tzb/data/${chartKey}.json`);
@@ -300,8 +400,24 @@ const html = await marked.parse(processedContent);
       }
       console.log('Creating chart with data:', chartData);
       
+      // Determine best padding based on data size
+      const dataPoints = chartData.length;
+      const isMobile = window.innerWidth < 768;
+      
+      // Adaptive padding based on data points and screen size
+      const padding = {
+        top: isMobile ? 15 : 20,
+        right: Math.min(20 + (dataPoints > 5 ? 10 : 0), 30),
+        left: isMobile ? 5 : 10,
+        bottom: 5
+      };
+      
+      // Adjust point styles based on data quantity
+      const pointRadius = dataPoints > 8 ? 3 : 4;
+      const pointHoverRadius = dataPoints > 8 ? 5 : 6;
+      
       // Create the chart
-      new Chart(canvas, {
+      const chart = new Chart(canvas, {
         type: 'line',
         data: {
           labels: chartData.map(item => item.year.toString()),
@@ -311,13 +427,19 @@ const html = await marked.parse(processedContent);
             borderColor: 'rgb(59, 130, 246)',
             backgroundColor: 'rgba(59, 130, 246, 0.1)',
             tension: 0.1,
-            pointRadius: 4,
-            pointHoverRadius: 6
+            pointRadius: pointRadius,
+            pointHoverRadius: pointHoverRadius,
+            pointBackgroundColor: 'white',
+            pointBorderColor: 'rgb(59, 130, 246)',
+            pointBorderWidth: 2
           }]
         },
         options: {
           responsive: true,
           maintainAspectRatio: true,
+          layout: {
+            padding: padding
+          },
           plugins: {
             legend: {
               display: false
@@ -328,15 +450,63 @@ const html = await marked.parse(processedContent);
                   return `${context.parsed.y}`;
                 }
               }
+            },
+            datalabels: {
+              color: '#333',
+              anchor: 'end',
+              align: 'top',
+              offset: isMobile ? 5 : 8,
+              font: {
+                weight: 'bold',
+                size: isMobile ? 10 : 12
+              },
+              formatter: function(value) {
+                return value;
+              },
+              backgroundColor: 'rgba(255, 255, 255, 0.7)',
+              borderRadius: 4,
+              padding: {
+                top: 2,
+                bottom: 2,
+                left: 4,
+                right: 4
+              },
+              display: true
             }
           },
           scales: {
             y: {
-              beginAtZero: false
+              beginAtZero: false,
+              ticks: {
+                padding: 10,
+                font: {
+                  size: isMobile ? 10 : 12
+                }
+              },
+              grid: {
+                drawBorder: false,
+                borderDash: [5, 5]
+              }
+            },
+            x: {
+              ticks: {
+                padding: 3,
+                font: {
+                  size: isMobile ? 10 : 12
+                }
+              },
+              grid: {
+                display: true,
+                drawBorder: false
+              }
             }
           }
-        }
+        },
+        plugins: hasDataLabelsPlugin ? [ChartDataLabels] : []
       });
+      
+      // Store the chart instance for later cleanup
+      chartInstances[canvasId] = chart;
     } catch (error) {
       console.error('Error creating chart:', error, chartKey, canvasId);
     }
@@ -345,25 +515,36 @@ const html = await marked.parse(processedContent);
 
 <style is:global>
   .hover-chart-text {
-    color: #0284c7;
+    color: #3570FF;
     text-decoration: underline;
     text-decoration-style: dotted;
     cursor: pointer;
   }
   
   .chart-tooltip {
-    padding: 5px;
-    width: 300px;
-    height: 200px;
+    padding: 10px 10px 5px 10px;
+    min-width: 300px;
+    min-height: 200px;
+    max-width: 95vw;
+    max-height: 70vh;
+    transition: width 0.2s ease-in-out, height 0.2s ease-in-out;
   }
   
   .tippy-box[data-theme~='light'] {
     background-color: white;
     color: black;
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    max-width: 95vw !important;
   }
   
   .tippy-box[data-theme~='light'][data-placement^='top'] > .tippy-arrow::before {
     border-top-color: white;
+  }
+  
+  @media (max-width: 768px) {
+    .chart-tooltip {
+      min-width: 250px;
+      padding: 8px 8px 3px 8px;
+    }
   }
 </style> 

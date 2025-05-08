@@ -18,6 +18,12 @@ const { title, activeNav } = Astro.props;
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{title} | TZB 翻阅每一页</title>
+    
+    <!-- Preload critical libraries to improve loading performance -->
+    <link rel="preload" href="https://unpkg.com/@popperjs/core@2" as="script" />
+    <link rel="preload" href="https://unpkg.com/tippy.js@6" as="script" />
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/chart.js" as="script" />
+    <link rel="preload" href="https://unpkg.com/tippy.js@6/dist/tippy.css" as="style" />
   </head>
   <body class="bg-secondary-50 text-secondary-900">
     <div class="flex min-h-screen">
@@ -51,7 +57,7 @@ const { title, activeNav } = Astro.props;
       </aside>
 
       <!-- Main content -->
-      <main class="flex-1 ml-56 p-8 max-w-none">
+      <main class="flex-1 ml-56 bg-white p-8 max-w-none">
         <slot />
       </main>
     </div>
