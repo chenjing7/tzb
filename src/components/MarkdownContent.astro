@@ -8,15 +8,110 @@ interface Props {
 
 const { content } = Astro.props;
 
+// Custom preprocessing for HoverChart tags
+let processedContent = content;
+// Replace HoverChart tags with a placeholder that won't be affected by markdown parsing
+const hoverChartRegex = /<HoverChart chartKey="([^"]+)">([^<]+)<\/HoverChart>/gi;
+const hoverCharts: Array<{key: string, value: string}> = [];
+
+processedContent = processedContent.replace(hoverChartRegex, (match, chartKey, value) => {
+  const id = `hover-chart-${hoverCharts.length}`;
+  hoverCharts.push({key: chartKey, value: value});
+  return `<span id="${id}" class="hover-chart-placeholder">${value}</span>`;
+});
+
 // Parse the markdown to HTML
-const html = await marked.parse(content);
+const html = await marked.parse(processedContent);
 ---
 
 <div class="markdown-content prose prose-slate max-w-none" id="markdown-container">
   <div id="markdown-content" set:html={html} />
 </div>
 
-<script>
+<script define:vars={{ hoverCharts }}>
+  // Initialize hover charts on DOM load
+  document.addEventListener('DOMContentLoaded', () => {
+    enhanceMarkdownTables();
+    processHoverCharts();
+  });
+  
+  /**
+   * Process HoverChart elements that were preprocessed server-side
+   */
+  function processHoverCharts() {
+    // 动态加载必要的库
+    Promise.all([
+      loadScript('https://unpkg.com/@popperjs/core@2'),
+      loadScript('https://unpkg.com/tippy.js@6'),
+      loadScript('https://cdn.jsdelivr.net/npm/chart.js'),
+      loadCSS('https://unpkg.com/tippy.js@6/dist/tippy.css')
+    ]).then(() => {
+      initializeCharts();
+    }).catch(error => {
+      console.error('Failed to load dependencies:', error);
+    });
+  }
+  
+  function loadScript(url) {
+    return new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = url;
+      script.async = true;
+      script.onload = () => resolve();
+      script.onerror = () => reject(new Error(`Failed to load script: ${url}`));
+      document.head.appendChild(script);
+    });
+  }
+  
+  function loadCSS(url) {
+    return new Promise((resolve, reject) => {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = url;
+      link.onload = () => resolve();
+      link.onerror = () => reject(new Error(`Failed to load CSS: ${url}`));
+      document.head.appendChild(link);
+    });
+  }
+  
+  function initializeCharts() {
+    // Process all stored hover charts
+    hoverCharts.forEach((chart, index) => {
+      const elementId = `hover-chart-${index}`;
+      const element = document.getElementById(elementId);
+      
+      if (!element) {
+        console.error('Hover chart element not found:', elementId);
+        return;
+      }
+      
+      // Update the element with proper attributes
+      element.setAttribute('data-chart-key', chart.key);
+      element.classList.add('hover-chart', 'hover-chart-text');
+      
+      console.log('Setting up hover chart:', chart.key, chart.value);
+      
+      // Initialize tippy
+      tippy(element, {
+        content: `<div class="chart-tooltip"><canvas id="chart-${chart.key}"></canvas></div>`,
+        allowHTML: true,
+        interactive: true,
+        appendTo: document.body,
+        trigger: 'mouseenter focus',
+        placement: 'top',
+        arrow: true,
+        theme: 'light',
+        maxWidth: 350,
+        onShow(instance) {
+          console.log('Tooltip shown, creating chart:', chart.key);
+          setTimeout(() => {
+            createChart(chart.key, `chart-${chart.key}`);
+          }, 10);
+        }
+      });
+    });
+  }
+  
   /**
    * Initialize and enhance markdown tables after the content is loaded
    */
@@ -114,7 +209,7 @@ const html = await marked.parse(content);
   /**
    * Create a modal for displaying a table in full view
    */
-  function createTableModal(table: HTMLTableElement, index: number) {
+  function createTableModal(table, index) {
     // Create modal elements
     const modalOverlay = document.createElement('div');
     modalOverlay.className = 'table-modal-overlay';
@@ -156,7 +251,7 @@ const html = await marked.parse(content);
   /**
    * Open a table modal
    */
-  function openModal(modal: Element) {
+  function openModal(modal) {
     modal.classList.add('active');
     setTimeout(() => {
       const modalContent = modal.querySelector('.table-modal');
@@ -170,7 +265,7 @@ const html = await marked.parse(content);
   /**
    * Close a table modal
    */
-  function closeModal(modal: Element) {
+  function closeModal(modal) {
     const modalContent = modal.querySelector('.table-modal');
     if (modalContent) {
       modalContent.classList.remove('active');
@@ -181,6 +276,94 @@ const html = await marked.parse(content);
     }, 300);
   }
   
-  // Initialize when the DOM is loaded
-  document.addEventListener('DOMContentLoaded', enhanceMarkdownTables);
-</script> 
+  /**
+   * Create chart with data from the specified JSON file
+   */
+  async function createChart(chartKey, canvasId) {
+    try {
+      // Fetch chart data
+      const response = await fetch(`/tzb/data/${chartKey}.json`);
+      console.log('Fetching data from:', `/tzb/data/${chartKey}.json`);
+      const data = await response.json();
+      console.log('Fetched data:', data);
+      
+      if (!data[chartKey]) {
+        console.error(`No data found for chart key: ${chartKey}`);
+        return;
+      }
+      
+      const chartData = data[chartKey];
+      const canvas = document.getElementById(canvasId);
+      if (!canvas) {
+        console.error('Canvas element not found:', canvasId);
+        return;
+      }
+      console.log('Creating chart with data:', chartData);
+      
+      // Create the chart
+      new Chart(canvas, {
+        type: 'line',
+        data: {
+          labels: chartData.map(item => item.year.toString()),
+          datasets: [{
+            label: '数值',
+            data: chartData.map(item => item.value),
+            borderColor: 'rgb(59, 130, 246)',
+            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+            tension: 0.1,
+            pointRadius: 4,
+            pointHoverRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          plugins: {
+            legend: {
+              display: false
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return `${context.parsed.y}`;
+                }
+              }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: false
+            }
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Error creating chart:', error, chartKey, canvasId);
+    }
+  }
+</script>
+
+<style is:global>
+  .hover-chart-text {
+    color: #0284c7;
+    text-decoration: underline;
+    text-decoration-style: dotted;
+    cursor: pointer;
+  }
+  
+  .chart-tooltip {
+    padding: 5px;
+    width: 300px;
+    height: 200px;
+  }
+  
+  .tippy-box[data-theme~='light'] {
+    background-color: white;
+    color: black;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  }
+  
+  .tippy-box[data-theme~='light'][data-placement^='top'] > .tippy-arrow::before {
+    border-top-color: white;
+  }
+</style> 
