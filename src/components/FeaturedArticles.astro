@@ -1,0 +1,44 @@
+---
+import { getCollection } from 'astro:content';
+import type { CollectionEntry } from 'astro:content';
+
+const articles = await getCollection('featured');
+
+// Debug: log article info to console
+console.log('Featured articles loaded:', articles.length);
+articles.forEach(article => {
+  console.log(`- ${article.slug}: ${article.data.title} (${article.data.date})`);
+});
+
+// Sort articles by date in descending order
+const sortedArticles = articles.sort((a, b) => {
+  return new Date(b.data.date).getTime() - new Date(a.data.date).getTime();
+});
+
+// Format date to "YYYY年MM月DD日"
+function formatDate(dateStr: string) {
+  const date = new Date(dateStr);
+  return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
+}
+---
+
+<div>
+  <ul class="grid grid-cols-2 gap-x-12 gap-y-10">
+    {sortedArticles.map(article => (
+      <li>
+        <article class="group">
+          <a href={`/tzb/featured/${article.slug}`} class="block">
+            <h2 class="text-xl text-gray-900 group-hover:text-[#3570FF] transition-colors">
+              {article.data.title}
+            </h2>
+            {article.data.description && (
+              <p class="text-[#64758B] mt-2 text-base leading-relaxed">
+                {article.data.description}
+              </p>
+            )}
+          </a>
+        </article>
+      </li>
+    ))}
+  </ul>
+</div> 

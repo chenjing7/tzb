@@ -38,6 +38,14 @@ const { title, activeNav } = Astro.props;
           <ul class="space-y-2">
             <li>
               <a 
+                href="/tzb/featured" 
+                class={`nav-link ${activeNav === 'featured' ? 'active' : ''}`}
+              >
+                精选文章
+              </a>
+            </li>
+            <li>
+              <a 
                 href="/tzb/mda" 
                 class={`nav-link ${activeNav === 'mda' ? 'active' : ''}`}
               >

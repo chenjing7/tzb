@@ -1,0 +1,23 @@
+---
+import MainLayout from '../layouts/MainLayout.astro';
+import FeaturedArticles from '../components/FeaturedArticles.astro';
+import { getCollection } from 'astro:content';
+
+const articles = await getCollection('featured');
+const articleCount = articles.length;
+---
+
+<MainLayout title="文章" activeNav="featured">
+  <div class="max-w-3xl mx-auto px-4 py-12">
+    <div>
+      <div class="mb-6">
+        <div class="flex items-end justify-between">
+          <h1 class="text-3xl font-bold text-gray-900">文章列表</h1>
+          <p class="text-sm text-[#64758B]">共 {articleCount} 篇</p>
+        </div>
+      </div>
+      <div class="h-px bg-gray-200 mb-16"></div>
+      <FeaturedArticles />
+    </div>
+  </div>
+</MainLayout> 

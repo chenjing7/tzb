@@ -1,0 +1,39 @@
+---
+import { getCollection } from 'astro:content';
+import MainLayout from '../../layouts/MainLayout.astro';
+import BackToList from '../../components/BackToList.astro';
+
+export async function getStaticPaths() {
+  const articles = await getCollection('featured');
+  return articles.map(article => ({
+    params: { slug: article.slug },
+    props: { article },
+  }));
+}
+
+const { article } = Astro.props;
+const { Content } = await article.render();
+---
+
+<MainLayout title={article.data.title} activeNav="featured">
+  <div class="max-w-3xl mx-auto px-4 py-12">
+    <div class="mb-8">
+      <BackToList href="/tzb/featured" />
+    </div>
+
+    <article class="bg-white rounded-lg shadow-sm">
+      <header class="p-6 border-b border-gray-100">
+        <h1 class="text-3xl font-bold text-gray-900 mb-4">
+          {article.data.title}
+        </h1>
+        {article.data.description && (
+          <p class="text-base text-[#64758B] mb-2">{article.data.description}</p>
+        )}
+      </header>
+      
+      <div class="p-6 prose prose-lg max-w-none">
+        <Content />
+      </div>
+    </article>
+  </div>
+</MainLayout> 
