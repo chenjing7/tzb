@@ -22,6 +22,7 @@
 
   a:hover {
     color: #3570FF;
+    font-weight: 500;
   }
 }
 
@@ -60,14 +61,15 @@
   }
 
   .nav-link:hover {
-    color: #0F172A;
+    color: #3570FF;
+    font-weight: 500;
     background-color: #F8FAFC;
   }
 
   .nav-link.active {
     @apply font-medium;
-    color: #3570FF;
-    background-color: white;
+    color: white;
+    background-color: #3570FF;
     border: 1px solid #E2E8F0;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
     transform: translateY(-1px);
@@ -88,16 +90,14 @@
   }
 
   .year-link:hover {
-    color: #0F172A;
+    color: #3570FF;
+    font-weight: 500;
     background-color: #F8FAFC;
   }
 
   .year-link.active {
     @apply font-medium;
     color: #3570FF;
-    background-color: white;
-    border: 1px solid #E2E8F0;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   }
 
   .year-link.active:hover {
