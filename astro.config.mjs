@@ -30,4 +30,8 @@ export default defineConfig({
       assetsInlineLimit: 0,
     },
   },
+  output: 'static',
+  experimental: {
+    viewTransitions: true
+  }
 });

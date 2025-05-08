@@ -77,7 +77,9 @@ const availableYears = [2024, 2023, 2022, 2021];
         <div class="p-8 bg-white shadow-sm rounded-lg">
           <!-- 显示内容 -->
           {content ? (
-            <MarkdownContent content={content} />
+            <div id="content-container">
+              <MarkdownContent content={content} />
+            </div>
           ) : (
             <div class="p-4 bg-yellow-100 text-yellow-800 rounded-md">
               <p class="font-medium">无法加载内容</p>
@@ -113,4 +115,21 @@ const availableYears = [2024, 2023, 2022, 2021];
       }
     }
   </style>
+
+  <script>
+    // Progressive loading of content
+    document.addEventListener('DOMContentLoaded', () => {
+      const contentContainer = document.getElementById('content-container');
+      if (contentContainer) {
+        // Add loading class
+        contentContainer.style.opacity = '0';
+        contentContainer.style.transition = 'opacity 0.3s ease';
+        
+        // Show content with fade in effect
+        requestAnimationFrame(() => {
+          contentContainer.style.opacity = '1';
+        });
+      }
+    });
+  </script>
 </MainLayout>

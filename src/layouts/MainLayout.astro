@@ -3,6 +3,7 @@
 import '../styles/global.css';
 import '../styles/table.css';
 import logo from '../assets/logo.svg';
+import { ClientRouter } from 'astro:transitions';
 
 interface Props {
   title: string;
@@ -18,17 +19,23 @@ const { title, activeNav } = Astro.props;
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{title} | TZB 翻阅每一页</title>
+    <ClientRouter />
     
     <!-- Preload critical libraries to improve loading performance -->
-    <link rel="preload" href="https://unpkg.com/@popperjs/core@2" as="script" />
-    <link rel="preload" href="https://unpkg.com/tippy.js@6" as="script" />
+    <link rel="preload" href="https://unpkg.com/@popperjs/core@2" as="script" crossorigin="anonymous" />
+    <link rel="preload" href="https://unpkg.com/tippy.js@6" as="script" crossorigin="anonymous" />
     <link rel="preload" href="https://cdn.jsdelivr.net/npm/chart.js" as="script" />
-    <link rel="preload" href="https://unpkg.com/tippy.js@6/dist/tippy.css" as="style" />
+    <link rel="preload" href="https://unpkg.com/tippy.js@6/dist/tippy.css" as="style" crossorigin="anonymous" />
+    
+    <!-- Prefetch navigation pages -->
+    <link rel="prefetch" href="/tzb/mda" />
+    <link rel="prefetch" href="/tzb/letters" />
+    <link rel="prefetch" href="/tzb/featured" />
   </head>
   <body class="bg-secondary-50 text-secondary-900">
     <div class="flex min-h-screen">
       <!-- Sidebar -->
-      <aside class="fixed top-0 left-0 w-56 bg-white shadow-md h-screen flex flex-col">
+      <aside class="fixed top-0 left-0 w-56 bg-white shadow-md h-screen flex flex-col border-r border-secondary-200" transition:persist>
         <div class="p-4 border-b border-secondary-80">
           <a href="/tzb" class="block">
             <img src={logo.src} alt="TZB Logo" class="h-8" />
@@ -40,6 +47,7 @@ const { title, activeNav } = Astro.props;
               <a 
                 href="/tzb/featured" 
                 class={`nav-link ${activeNav === 'featured' ? 'active' : ''}`}
+                data-nav="featured"
               >
                 精选文章
               </a>
@@ -48,6 +56,7 @@ const { title, activeNav } = Astro.props;
               <a 
                 href="/tzb/mda" 
                 class={`nav-link ${activeNav === 'mda' ? 'active' : ''}`}
+                data-nav="mda"
               >
                 管理层讨论与分析
               </a>
@@ -56,6 +65,7 @@ const { title, activeNav } = Astro.props;
               <a 
                 href="/tzb/letters" 
                 class={`nav-link ${activeNav === 'letters' ? 'active' : ''}`}
+                data-nav="letters"
               >
                 致股东信
               </a>
@@ -65,7 +75,7 @@ const { title, activeNav } = Astro.props;
       </aside>
 
       <!-- Main content -->
-      <main class="flex-1 ml-56 bg-white p-8 max-w-none">
+      <main class="flex-1 ml-56 bg-white p-8 max-w-none" transition:animate="fade">
         <slot />
       </main>
     </div>
@@ -75,7 +85,32 @@ const { title, activeNav } = Astro.props;
       import { enhanceTableBorders } from '../utils/tableEnhancer.js';
       
       // Apply table border styles after page loads
-      document.addEventListener('DOMContentLoaded', enhanceTableBorders);
+      document.addEventListener('DOMContentLoaded', () => {
+        enhanceTableBorders();
+        updateActiveNav();
+      });
+
+      // Since we're using client-side navigation with ClientRouter,
+      // we need to also listen for the astro:page-load event
+      document.addEventListener('astro:page-load', () => {
+        enhanceTableBorders();
+        updateActiveNav();
+      });
+
+      function updateActiveNav() {
+        const path = window.location.pathname;
+        const navLinks = document.querySelectorAll('.nav-link');
+        
+        navLinks.forEach(link => {
+          const navType = link.getAttribute('data-nav');
+          const isActive = path.includes(`/tzb/${navType}`);
+          if (isActive) {
+            link.classList.add('active');
+          } else {
+            link.classList.remove('active');
+          }
+        });
+      }
     </script>
   </body>
 </html> 
