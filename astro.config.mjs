@@ -7,7 +7,7 @@ import remarkGfm from 'remark-gfm';
 
 // https://astro.build/config
 export default defineConfig({
-  site: 'https://tzb.vercel.app',
+  site: 'https://chenjing7.github.io',
   base: '/tzb',
   integrations: [
     mdx(),

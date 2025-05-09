@@ -20,6 +20,8 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      NODE_ENV: production
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -34,6 +36,16 @@ jobs:
         run: npm ci
       - name: Build with Astro
         run: npm run build
+      - name: Inspect build output
+        run: |
+          echo "==== Build Output Structure ===="
+          ls -la dist
+          echo "==== Data Directory ===="
+          ls -la dist/data || echo "No data directory found"
+          echo "==== TZB Directory ===="
+          ls -la dist/tzb || echo "No tzb directory found"
+          echo "==== TZB/Data Directory ===="
+          ls -la dist/tzb/data || echo "No tzb/data directory found"
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:

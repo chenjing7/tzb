@@ -140,7 +140,9 @@ const html = await marked.parse(processedContent);
     
     // 预加载所有数据文件
     const preloadPromises = hoverCharts.map(chart => {
-      return fetch(`/tzb/data/${chart.key}.json`)
+      const dataUrl = `/tzb/data/${chart.key}.json`;
+      console.log('Preloading data from:', dataUrl);
+      return fetch(dataUrl)
         .then(response => {
           if (!response.ok) {
             throw new Error(`Failed to preload data: ${response.status}`);
@@ -306,7 +308,8 @@ const html = await marked.parse(processedContent);
               }
               
               // 确保在显示tooltip前数据已加载完成
-              fetch(`/tzb/data/${chart.key}.json`)
+              const dataUrl = `/tzb/data/${chart.key}.json`;
+              fetch(dataUrl)
                 .then(response => {
                   if (!response.ok) {
                     throw new Error(`Failed to fetch data: ${response.status} ${response.statusText}`);
@@ -572,8 +575,9 @@ const html = await marked.parse(processedContent);
       }
       
       // Fetch chart data
-      console.log('Fetching data from:', `/tzb/data/${chartKey}.json`);
-      const response = await fetch(`/tzb/data/${chartKey}.json`);
+      const dataUrl = `/tzb/data/${chartKey}.json`;
+      console.log('Fetching data from:', dataUrl);
+      const response = await fetch(dataUrl);
       const data = await response.json();
       
       if (!data[chartKey]) {

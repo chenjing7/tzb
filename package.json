@@ -4,7 +4,8 @@
   "version": "0.0.1",
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build",
+    "build": "astro build && npm run fix-build",
+    "fix-build": "mkdir -p dist/data && cp -r dist/tzb/data/* dist/data/ || echo 'Files already copied or not found'",
     "preview": "astro preview",
     "astro": "astro"
   },
