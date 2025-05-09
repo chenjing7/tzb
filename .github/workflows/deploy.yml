@@ -32,8 +32,23 @@ jobs:
           cache: 'npm'
       - name: Setup Pages
         uses: actions/configure-pages@v4
+      - name: Check package.json
+        run: cat package.json
       - name: Install dependencies
-        run: npm ci
+        run: |
+          npm install
+          # Check for missing dependencies and install them manually if needed
+          if ! npm list @astrojs/mdx &>/dev/null; then
+            echo "MDX not found, installing manually"
+            npm install @astrojs/mdx
+          fi
+          if ! npm list @astrojs/tailwind &>/dev/null; then
+            echo "Tailwind not found, installing manually"
+            npm install @astrojs/tailwind
+          fi
+          # Verify installations
+          npm list @astrojs/mdx
+          npm list @astrojs/tailwind
       - name: Build with Astro
         run: npm run build
       - name: Inspect build output
