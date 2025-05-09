@@ -29,14 +29,15 @@ const html = await marked.parse(processedContent);
 </div>
 
 <script define:vars={{ hoverCharts }}>
-  // Apply styling immediately on script execution
-  (function() {
-    applyInitialHoverChartStyling();
-  })();
+  // Track if tables have been enhanced
+  let tablesEnhanced = false;
   
   // Initialize hover charts on DOM load
   document.addEventListener('DOMContentLoaded', () => {
-    enhanceMarkdownTables();
+    if (!tablesEnhanced) {
+      enhanceMarkdownTables();
+      tablesEnhanced = true;
+    }
     processHoverCharts();
     
     // 页面加载3秒后尝试预加载第一个tooltip
@@ -47,7 +48,13 @@ const html = await marked.parse(processedContent);
   
   // Also handle client-side navigation (Astro View Transitions)
   document.addEventListener('astro:page-load', () => {
-    enhanceMarkdownTables();
+    // Reset the flag on page navigation
+    tablesEnhanced = false;
+    
+    if (!tablesEnhanced) {
+      enhanceMarkdownTables();
+      tablesEnhanced = true;
+    }
     
     // If HoverChart placeholders exist in the page, process them
     if (document.querySelector('.hover-chart-placeholder')) {
@@ -61,6 +68,14 @@ const html = await marked.parse(processedContent);
   
   // Clean up resources when navigating away to prevent memory leaks
   document.addEventListener('astro:before-preparation', () => {
+    // Reset the flag
+    tablesEnhanced = false;
+    
+    // Clean up table modals
+    document.querySelectorAll('.table-modal-overlay').forEach(modal => {
+      modal.remove();
+    });
+    
     // Destroy all chart instances
     for (const id in chartInstances) {
       if (chartInstances[id]) {
@@ -397,6 +412,11 @@ const html = await marked.parse(processedContent);
     const tables = container.querySelectorAll('table');
     
     tables.forEach((table, index) => {
+      // Skip if table is already enhanced
+      if (table.closest('.table-container')) {
+        return;
+      }
+      
       // Ensure table has proper styling by adding classes
       table.classList.add('markdown-table');
       
@@ -414,35 +434,39 @@ const html = await marked.parse(processedContent);
       if (isLargeTable) {
         tableContainer.classList.add('large-table');
         
-        // Create "View full table" button
-        const viewButton = document.createElement('button');
-        viewButton.className = 'view-full-table';
-        viewButton.innerHTML = `
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon">
-            <path d="M15 3h6v6"></path>
-            <path d="M9 21H3v-6"></path>
-            <path d="M21 3l-7 7"></path>
-            <path d="M3 21l7-7"></path>
-          </svg>
-          查看完整表格
-        `;
-        viewButton.dataset.viewTable = '';
-        
-        // Add elements to DOM
-        table.parentNode?.insertBefore(tableContainer, table);
-        tableContainer.appendChild(table);
-        tableContainer.appendChild(viewButton);
-        
-        // Create modal for the table
-        createTableModal(table, index);
-        
-        // Add click event for the button
-        viewButton.addEventListener('click', () => {
-          const modal = document.querySelector(`[data-modal-id="modal-${index}"]`);
-          if (modal) {
-            openModal(modal);
-          }
-        });
+        // Check if modal already exists for this table
+        const existingModal = document.querySelector(`[data-modal-id="modal-${index}"]`);
+        if (!existingModal) {
+          // Create "View full table" button
+          const viewButton = document.createElement('button');
+          viewButton.className = 'view-full-table';
+          viewButton.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon">
+              <path d="M15 3h6v6"></path>
+              <path d="M9 21H3v-6"></path>
+              <path d="M21 3l-7 7"></path>
+              <path d="M3 21l7-7"></path>
+            </svg>
+            查看完整表格
+          `;
+          viewButton.dataset.viewTable = '';
+          
+          // Add elements to DOM
+          table.parentNode?.insertBefore(tableContainer, table);
+          tableContainer.appendChild(table);
+          tableContainer.appendChild(viewButton);
+          
+          // Create modal for the table
+          createTableModal(table, index);
+          
+          // Add click event for the button
+          viewButton.addEventListener('click', () => {
+            const modal = document.querySelector(`[data-modal-id="modal-${index}"]`);
+            if (modal) {
+              openModal(modal);
+            }
+          });
+        }
       } else {
         // For regular tables, just add the container
         table.parentNode?.insertBefore(tableContainer, table);
