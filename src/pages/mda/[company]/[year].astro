@@ -117,6 +117,9 @@ const availableYears = [2024, 2023, 2022, 2021];
   </style>
 
   <script>
+    // Keep track of library loading status
+    let librariesLoaded = false;
+    
     // Progressive loading of content
     document.addEventListener('DOMContentLoaded', () => {
       const contentContainer = document.getElementById('content-container');
@@ -130,6 +133,87 @@ const availableYears = [2024, 2023, 2022, 2021];
           contentContainer.style.opacity = '1';
         });
       }
+      
+      // Ensure hover charts are initialized on direct page load
+      initializeHoverCharts();
     });
+    
+    // Also handle client-side navigation with Astro transitions
+    document.addEventListener('astro:page-load', () => {
+      console.log('MDA page loaded via client-side navigation');
+      // Reset the libraries loaded flag on navigation
+      librariesLoaded = false;
+      // Ensure hover charts are initialized after client-side navigation
+      initializeHoverCharts();
+    });
+    
+    function initializeHoverCharts() {
+      // Check if we need to load and initialize the chart libraries
+      if (document.querySelector('.hover-chart-placeholder')) {
+        console.log('HoverChart placeholders found, ensuring libraries are loaded...');
+        
+        // Skip loading if already done
+        if (librariesLoaded && typeof window.processHoverCharts === 'function') {
+          console.log('Libraries already loaded, directly processing charts');
+          window.processHoverCharts();
+          return;
+        }
+        
+        // Ensure required libraries are loaded
+        Promise.all([
+          ensureScriptLoaded('https://unpkg.com/@popperjs/core@2'),
+          ensureScriptLoaded('https://unpkg.com/tippy.js@6'),
+          ensureScriptLoaded('https://cdn.jsdelivr.net/npm/chart.js'),
+          ensureScriptLoaded('https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0'),
+          ensureStyleLoaded('https://unpkg.com/tippy.js@6/dist/tippy.css')
+        ]).then(() => {
+          console.log('All chart libraries loaded on MDA page');
+          librariesLoaded = true;
+          
+          // Trigger hover chart initialization 
+          if (typeof window.processHoverCharts === 'function') {
+            window.processHoverCharts();
+          }
+        }).catch(error => {
+          console.error('Failed to load chart libraries:', error);
+        });
+      }
+    }
+    
+    function ensureScriptLoaded(url: string): Promise<void> {
+      return new Promise<void>((resolve, reject) => {
+        // Check if script is already loaded
+        if (document.querySelector(`script[src="${url}"]`)) {
+          resolve();
+          return;
+        }
+        
+        const script = document.createElement('script');
+        script.src = url;
+        script.async = true;
+        script.crossOrigin = 'anonymous';
+        script.onload = () => resolve();
+        script.onerror = () => reject(new Error(`Failed to load script: ${url}`));
+        document.head.appendChild(script);
+      });
+    }
+    
+    function ensureStyleLoaded(url: string): Promise<void> {
+      return new Promise<void>((resolve, reject) => {
+        // Check if style is already loaded
+        if (document.querySelector(`link[href="${url}"]`)) {
+          resolve();
+          return;
+        }
+        
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = url;
+        link.crossOrigin = 'anonymous';
+        link.onload = () => resolve();
+        link.onerror = () => reject(new Error(`Failed to load CSS: ${url}`));
+        document.head.appendChild(link);
+      });
+    }
   </script>
 </MainLayout>

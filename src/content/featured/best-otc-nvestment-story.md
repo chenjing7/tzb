@@ -109,7 +109,7 @@ Martin then asked to see a list of shareholders who had cashed the most recent d
 What’s going on here?  
 这里发生了什么？
 
-#### Lost Shareholders 消失的股东
+#### Lost Shareholders 失散的股东
 
 Best Lock was founded in Seattle in 1922 by Frank E. Best.  
 百思锁由 Frank E. Best 于 1922 年在西雅图创立。

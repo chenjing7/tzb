@@ -2,6 +2,7 @@
 import MainLayout from '../../layouts/MainLayout.astro';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
+import { ClientRouter } from 'astro:transitions';
 
 // Define company interface
 interface Company {
@@ -63,7 +64,7 @@ const companies: Company[] = await Promise.all(companyIds.map(async id => {
         type="text" 
         id="companySearch" 
         placeholder="输入名称..." 
-        class="w-full max-w-md px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3570FF] focus:border-[#3570FF]"
+        class="w-full max-w-xs px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3570FF] focus:border-[#3570FF]"
       />
     </div>
 
