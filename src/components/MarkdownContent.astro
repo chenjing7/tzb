@@ -8,42 +8,24 @@ interface Props {
 
 const { content } = Astro.props;
 
-// Custom preprocessing for HoverChart tags
-let processedContent = content;
-// Replace HoverChart tags with a placeholder that won't be affected by markdown parsing
-const hoverChartRegex = /<HoverChart chartKey="([^"]+)">([^<]+)<\/HoverChart>/gi;
-const hoverCharts: Array<{key: string, value: string}> = [];
-
-processedContent = processedContent.replace(hoverChartRegex, (match, chartKey, value) => {
-  const id = `hover-chart-${hoverCharts.length}`;
-  hoverCharts.push({key: chartKey, value: value});
-  return `<span id="${id}" class="hover-chart-placeholder hover-chart hover-chart-text" data-chart-key="${chartKey}" style="color:#3570FF;border-bottom:1.5px dotted #3570FF;padding-bottom:1px;cursor:pointer;">${value}</span>`;
-});
-
 // Parse the markdown to HTML
-const html = await marked.parse(processedContent);
+const html = await marked.parse(content);
 ---
 
 <div class="markdown-content prose prose-slate max-w-none" id="markdown-container">
   <div id="markdown-content" set:html={html} />
 </div>
 
-<script define:vars={{ hoverCharts }}>
+<script>
   // Track if tables have been enhanced
   let tablesEnhanced = false;
   
-  // Initialize hover charts on DOM load
+  // Initialize on DOM load
   document.addEventListener('DOMContentLoaded', () => {
     if (!tablesEnhanced) {
       enhanceMarkdownTables();
       tablesEnhanced = true;
     }
-    processHoverCharts();
-    
-    // 页面加载3秒后尝试预加载第一个tooltip
-    setTimeout(() => {
-      preloadFirstChart();
-    }, 3000);
   });
   
   // Also handle client-side navigation (Astro View Transitions)
@@ -55,15 +37,6 @@ const html = await marked.parse(processedContent);
       enhanceMarkdownTables();
       tablesEnhanced = true;
     }
-    
-    // If HoverChart placeholders exist in the page, process them
-    if (document.querySelector('.hover-chart-placeholder')) {
-      console.log('Found HoverChart placeholders after navigation, initializing...');
-      // Process hover charts with a slight delay to ensure DOM is fully updated
-      setTimeout(() => {
-        processHoverCharts();
-      }, 100);
-    }
   });
   
   // Clean up resources when navigating away to prevent memory leaks
@@ -71,345 +44,20 @@ const html = await marked.parse(processedContent);
     // Reset the flag
     tablesEnhanced = false;
     
-    // Clean up table modals
+    // Clean up table modals and buttons
     document.querySelectorAll('.table-modal-overlay').forEach(modal => {
       modal.remove();
     });
-    
-    // Destroy all chart instances
-    for (const id in chartInstances) {
-      if (chartInstances[id]) {
-        console.log('Destroying chart instance:', id);
-        chartInstances[id].destroy();
-        delete chartInstances[id];
-      }
-    }
-    
-    // Clean up tippy instances
-    for (const id in tippyInstances) {
-      if (tippyInstances[id]) {
-        console.log('Destroying tippy instance:', id);
-        tippyInstances[id].destroy();
-        delete tippyInstances[id];
-      }
-    }
+    document.querySelectorAll('.view-full-table').forEach(button => {
+      button.remove();
+    });
   });
-  
-  // Apply initial styling to hover chart placeholders
-  function applyInitialHoverChartStyling() {
-    hoverCharts.forEach((chart, index) => {
-      const elementId = `hover-chart-${index}`;
-      const element = document.getElementById(elementId);
-      
-      if (element) {
-        element.setAttribute('data-chart-key', chart.key);
-        element.classList.add('hover-chart', 'hover-chart-text');
-        console.log('Applied initial styling to:', elementId);
-      }
-    });
-  }
-  
-  // 添加全局存储所有tippy实例
-  const tippyInstances = {};
-  
-  // Track when tooltips were last shown to prevent multiple rapid triggers
-  const lastTooltipShown = {};
-  const TOOLTIP_DEBOUNCE_MS = 300; // Prevent showing the same tooltip within 300ms
-  
-  // 定义hasDataLabelsPlugin在脚本作用域，使其对所有函数都可访问
-  let hasDataLabelsPlugin = false;
-  
-  // 跟踪图表实例以便在重用前销毁它们
-  const chartInstances = {};
-  
-  /**
-   * Process HoverChart elements that were preprocessed server-side
-   */
-  function processHoverCharts() {
-    console.log('Starting to process hover charts...');
-    
-    // Skip if no hover charts found
-    if (hoverCharts.length === 0) {
-      console.log('No hover charts found to process');
-      return;
-    }
-    
-    // 先应用基本样式，确保即使脚本未加载，文本也有高亮显示
-    hoverCharts.forEach((chart, index) => {
-      const elementId = `hover-chart-${index}`;
-      const element = document.getElementById(elementId);
-      if (element) {
-        console.log('Found hover chart element:', elementId);
-      }
-    });
-    
-    // Check if dependencies are already loaded
-    const dependenciesLoaded = typeof window.tippy !== 'undefined' && 
-                              typeof window.Chart !== 'undefined';
-    
-    if (dependenciesLoaded) {
-      console.log('Dependencies already loaded, initializing charts directly');
-      initializeCharts();
-      return;
-    }
-    
-    // 预加载所有数据文件
-    const preloadPromises = hoverCharts.map(chart => {
-      const dataUrl = `/tzb/data/${chart.key}.json`;
-      console.log('Preloading data from:', dataUrl);
-      return fetch(dataUrl)
-        .then(response => {
-          if (!response.ok) {
-            throw new Error(`Failed to preload data: ${response.status}`);
-          }
-          return response.json(); 
-        })
-        .catch(err => {
-          console.error('Failed to preload chart data:', err);
-          return null;
-        });
-    });
-    
-    // 并行加载所有脚本和数据
-    Promise.all([
-      // 加载Popper.js (tippy的依赖)
-      loadScript('https://unpkg.com/@popperjs/core@2'),
-      // 预加载所有数据
-      ...preloadPromises
-    ])
-    .then(() => {
-      console.log('Popper.js and data preloaded');
-      // 加载tippy.js及其CSS
-      return Promise.all([
-        loadScript('https://unpkg.com/tippy.js@6'),
-        loadCSS('https://unpkg.com/tippy.js@6/dist/tippy.css')
-      ]);
-    })
-    .then(() => {
-      console.log('Tippy.js loaded successfully');
-      // 加载Chart.js
-      return loadScript('https://cdn.jsdelivr.net/npm/chart.js');
-    })
-    .then(() => {
-      console.log('Chart.js loaded successfully');
-      // 加载Chart.js datalabels插件
-      return loadScript('https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0');
-    })
-    .then(() => {
-      console.log('All dependencies loaded successfully');
-      // 初始化图表
-      initializeCharts();
-    })
-    .catch(error => {
-      console.error('Failed to load dependencies:', error);
-      // 使用备用CDN源作为回退
-      console.log('Trying fallback sources...');
-      
-      loadScript('https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.7/dist/umd/popper.min.js')
-        .then(() => Promise.all([
-          loadScript('https://cdn.jsdelivr.net/npm/tippy.js@6.3.7/dist/tippy.umd.min.js'),
-          loadCSS('https://cdn.jsdelivr.net/npm/tippy.js@6.3.7/dist/tippy.css')
-        ]))
-        .then(() => loadScript('https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js'))
-        .then(() => loadScript('https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0'))
-        .then(() => {
-          console.log('Fallback loading successful');
-          initializeCharts();
-        })
-        .catch(fallbackError => {
-          console.error('Fallback loading also failed:', fallbackError);
-        });
-    });
-  }
-  
-  // Make processHoverCharts globally accessible for external components
-  // @ts-ignore - Adding to window object
-  window.processHoverCharts = processHoverCharts;
-  
-  function loadScript(url) {
-    return new Promise((resolve, reject) => {
-      const script = document.createElement('script');
-      script.src = url;
-      script.async = true;
-      script.crossOrigin = 'anonymous';
-      script.onload = () => resolve();
-      script.onerror = () => reject(new Error(`Failed to load script: ${url}`));
-      document.head.appendChild(script);
-    });
-  }
-  
-  function loadCSS(url) {
-    return new Promise((resolve, reject) => {
-      const link = document.createElement('link');
-      link.rel = 'stylesheet';
-      link.href = url;
-      link.crossOrigin = 'anonymous';
-      link.onload = () => resolve();
-      link.onerror = () => reject(new Error(`Failed to load CSS: ${url}`));
-      document.head.appendChild(link);
-    });
-  }
-  
-  function initializeCharts() {
-    // 检查必需的库是否已加载
-    if (typeof tippy === 'undefined' || typeof Chart === 'undefined') {
-      console.error('Required libraries not loaded. Retrying in 1000ms...');
-      setTimeout(initializeCharts, 1000);
-      return;
-    }
-    
-    console.log('Libraries loaded successfully. Initializing charts...');
-    
-    // 检查ChartDataLabels插件是否已加载
-    hasDataLabelsPlugin = typeof ChartDataLabels !== 'undefined';
-    if (!hasDataLabelsPlugin) {
-      console.warn('ChartDataLabels plugin not loaded. Charts will not show data labels.');
-    }
-    
-    // 初始化所有预处理的悬停图表
-    hoverCharts.forEach((chart, index) => {
-      const elementId = `hover-chart-${index}`;
-      const element = document.getElementById(elementId);
-      
-      if (!element) {
-        console.error('Hover chart element not found:', elementId);
-        return;
-      }
-      
-      console.log('Setting up hover chart tooltip for:', chart.key, chart.value);
-      
-      // 再次检查tippy是否可用
-      if (typeof tippy === 'undefined') {
-        console.error('tippy.js is not loaded correctly');
-        return;
-      }
-      
-      try {
-        // 延迟初始化，确保DOM已完全加载
-        setTimeout(() => {
-          // 使用错误处理初始化tippy
-          const tippyInstance = tippy(element, {
-            content: `<div class="chart-tooltip"><canvas id="chart-${chart.key}"></canvas></div>`,
-            allowHTML: true,
-            interactive: true,
-            appendTo: document.body,
-            trigger: 'mouseenter focus',
-            placement: 'top',
-            arrow: true,
-            theme: 'light',
-            maxWidth: 'none', // 根据内容允许提示框自行调整大小
-            animation: 'scale',
-            inertia: true,
-            duration: [200, 150],
-            onShow(instance) {
-              const now = Date.now();
-              
-              // Implement debouncing for tooltip display
-              if (lastTooltipShown[chart.key] && now - lastTooltipShown[chart.key] < TOOLTIP_DEBOUNCE_MS) {
-                console.log(`Debouncing tooltip for ${chart.key}, shown too recently`);
-                return false; // Prevents the tooltip from showing
-              }
-              
-              // Record when this tooltip is shown
-              lastTooltipShown[chart.key] = now;
-              
-              console.log('Tooltip shown, creating chart:', chart.key);
-              
-              // Check if chart already exists or is being created
-              const canvasId = `chart-${chart.key}`;
-              if (chartInstances[canvasId] || chartCreationInProgress[canvasId]) {
-                console.log(`Chart ${canvasId} already exists or is being created, skipping data fetch`);
-                return;
-              }
-              
-              // 确保在显示tooltip前数据已加载完成
-              const dataUrl = `/tzb/data/${chart.key}.json`;
-              fetch(dataUrl)
-                .then(response => {
-                  if (!response.ok) {
-                    throw new Error(`Failed to fetch data: ${response.status} ${response.statusText}`);
-                  }
-                  return response.json();
-                })
-                .then(data => {
-                  if (!data[chart.key]) return;
-                  
-                  const chartData = data[chart.key];
-                  const dataPoints = chartData.length;
-                  
-                  // 根据数据点计算适当的尺寸
-                  let tooltipWidth = Math.max(350, dataPoints * 70);
-                  let tooltipHeight = Math.min(220, 180 + (dataPoints > 5 ? 20 : 0));
-                  
-                  // 处理非常大的数据集
-                  if (dataPoints > 10) {
-                    tooltipWidth = Math.min(800, tooltipWidth); // 限制为800px
-                  }
-                  
-                  // 为移动屏幕调整
-                  if (window.innerWidth < 768) {
-                    tooltipWidth = Math.min(window.innerWidth - 40, tooltipWidth);
-                    tooltipHeight = Math.min(200, tooltipWidth * 0.55);
-                  }
-                  
-                  // 应用计算的尺寸
-                  const tooltipContent = instance.popper.querySelector('.chart-tooltip');
-                  if (tooltipContent) {
-                    tooltipContent.style.width = `${tooltipWidth}px`;
-                    tooltipContent.style.height = `${tooltipHeight}px`;
-                  }
-                  
-                  // 设置尺寸后创建图表
-                  setTimeout(() => {
-                    createChart(chart.key, `chart-${chart.key}`);
-                  }, 50);
-                })
-                .catch(error => {
-                  console.error('Error fetching data for tooltip sizing:', error);
-                  // 回退到使用默认尺寸创建图表
-                  setTimeout(() => {
-                    createChart(chart.key, `chart-${chart.key}`);
-                  }, 50);
-                });
-            },
-            onHide(instance) {
-              // Track when the tooltip was hidden
-              lastTooltipShown[chart.key] = Date.now();
-              
-              // We don't need to destroy the chart here, it will be reused
-              // Just log that the tooltip is hidden
-              console.log(`Tooltip hidden for ${chart.key}`);
-            }
-          });
-          
-          // Store the tippy instance for later cleanup
-          tippyInstances[elementId] = tippyInstance;
-          console.log('Stored tippy instance for:', elementId);
-          
-          // 为移动设备添加点击事件触发
-          element.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            if (tippyInstances[elementId]) {
-              tippyInstances[elementId].show();
-            }
-          });
-        }, 10);
-      } catch (error) {
-        console.error('Failed to initialize tippy for chart:', error);
-      }
-    });
-  }
   
   /**
    * Initialize and enhance markdown tables after the content is loaded
    */
   function enhanceMarkdownTables() {
-    const container = document.getElementById('markdown-container');
-    if (!container) return;
-    
-    // Find all tables in the markdown content
-    const tables = container.querySelectorAll('table');
+    const tables = document.querySelectorAll('.markdown-content table');
     
     tables.forEach((table, index) => {
       // Skip if table is already enhanced
@@ -417,428 +65,293 @@ const html = await marked.parse(processedContent);
         return;
       }
       
-      // Ensure table has proper styling by adding classes
-      table.classList.add('markdown-table');
+      // Add container for better scrolling
+      const container = document.createElement('div');
+      container.className = 'table-container';
+      container.setAttribute('data-table-container', '');
+      container.setAttribute('data-table-id', `table-${index}`);
       
-      // Create wrapper elements
-      const tableContainer = document.createElement('div');
-      tableContainer.className = 'table-container';
-      tableContainer.dataset.tableId = `table-${index}`;
+      // Wrap table in container
+      if (table.parentNode) {
+        table.parentNode.insertBefore(container, table);
+        container.appendChild(table);
+      }
       
-      // Determine if it's a large table by counting columns or checking width
-      const headerRow = table.querySelector('thead tr');
-      const columnCount = headerRow ? headerRow.children.length : 0;
-      const isLargeTable = columnCount > 7;
-      
-      // For large tables, add special handling
-      if (isLargeTable) {
-        tableContainer.classList.add('large-table');
+      // Add view full table button for large tables
+      if ((table as HTMLTableElement).rows.length > 5) {
+        container.classList.add('large-table');
+        const viewButton = document.createElement('button');
+        viewButton.className = 'view-full-table';
+        viewButton.setAttribute('data-view-table', '');
+        viewButton.innerHTML = `
+          <span>查看完整表格</span>
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M8 3H5a2 2 0 0 0-2 2v3"></path>
+            <path d="M21 8V5a2 2 0 0 0-2-2h-3"></path>
+            <path d="M3 16v3a2 2 0 0 0 2 2h3"></path>
+            <path d="M16 21h3a2 2 0 0 0 2-2v-3"></path>
+          </svg>
+        `;
+        container.appendChild(viewButton);
         
-        // Check if modal already exists for this table
-        const existingModal = document.querySelector(`[data-modal-id="modal-${index}"]`);
-        if (!existingModal) {
-          // Create "View full table" button
-          const viewButton = document.createElement('button');
-          viewButton.className = 'view-full-table';
-          viewButton.innerHTML = `
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon">
-              <path d="M15 3h6v6"></path>
-              <path d="M9 21H3v-6"></path>
-              <path d="M21 3l-7 7"></path>
-              <path d="M3 21l7-7"></path>
-            </svg>
-            查看完整表格
-          `;
-          viewButton.dataset.viewTable = '';
-          
-          // Add elements to DOM
-          table.parentNode?.insertBefore(tableContainer, table);
-          tableContainer.appendChild(table);
-          tableContainer.appendChild(viewButton);
-          
-          // Create modal for the table
-          createTableModal(table, index);
-          
-          // Add click event for the button
-          viewButton.addEventListener('click', () => {
-            const modal = document.querySelector(`[data-modal-id="modal-${index}"]`);
-            if (modal) {
-              openModal(modal);
-            }
-          });
-        }
-      } else {
-        // For regular tables, just add the container
-        table.parentNode?.insertBefore(tableContainer, table);
-        tableContainer.appendChild(table);
+        // Create modal for full table view
+        const modal = document.createElement('div');
+        modal.className = 'table-modal-overlay';
+        modal.setAttribute('data-table-modal', `table-${index}`);
+        modal.innerHTML = `
+          <div class="table-modal">
+            <div class="table-modal-header">
+              <h3 class="table-modal-title">完整表格</h3>
+              <button class="table-modal-close" data-close-modal>&times;</button>
+            </div>
+            <div class="table-modal-content">
+              ${table.outerHTML}
+            </div>
+          </div>
+        `;
+        document.body.appendChild(modal);
       }
     });
     
-    // Add event listeners for modal close buttons
-    document.querySelectorAll('[data-close-modal]').forEach(button => {
-      button.addEventListener('click', () => {
-        const modal = button.closest('.table-modal-overlay');
-        if (modal) {
-          closeModal(modal);
-        }
-      });
-    });
-    
-    // Close modal when clicking outside
-    document.querySelectorAll('.table-modal-overlay').forEach(modal => {
-      modal.addEventListener('click', (e) => {
-        if (e.target === modal) {
-          closeModal(modal);
-        }
-      });
-    });
-    
-    // Close modal with Escape key
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
-        const openModal = document.querySelector('.table-modal-overlay.active');
-        if (openModal) {
-          closeModal(openModal);
-        }
-      }
-    });
+    // Initialize table modals
+    initTableModals();
   }
   
-  /**
-   * Create a modal for displaying a table in full view
-   */
-  function createTableModal(table, index) {
-    // Create modal elements
-    const modalOverlay = document.createElement('div');
-    modalOverlay.className = 'table-modal-overlay';
-    modalOverlay.dataset.modalId = `modal-${index}`;
+  function initTableModals() {
+    const tableContainers = document.querySelectorAll('[data-table-container]');
     
-    const modal = document.createElement('div');
-    modal.className = 'table-modal';
-    
-    const modalHeader = document.createElement('div');
-    modalHeader.className = 'table-modal-header';
-    
-    const modalTitle = document.createElement('h3');
-    modalTitle.className = 'table-modal-title';
-    modalTitle.textContent = '完整表格';
-    
-    const closeButton = document.createElement('button');
-    closeButton.className = 'table-modal-close';
-    closeButton.innerHTML = '&times;';
-    closeButton.dataset.closeModal = '';
-    
-    const modalContent = document.createElement('div');
-    modalContent.className = 'table-modal-content';
-    
-    // Clone the table for the modal
-    const tableClone = table.cloneNode(true);
-    
-    // Assemble the modal
-    modalHeader.appendChild(modalTitle);
-    modalHeader.appendChild(closeButton);
-    modalContent.appendChild(tableClone);
-    modal.appendChild(modalHeader);
-    modal.appendChild(modalContent);
-    modalOverlay.appendChild(modal);
-    
-    // Add to the document
-    document.body.appendChild(modalOverlay);
-  }
-  
-  /**
-   * Open a table modal
-   */
-  function openModal(modal) {
-    modal.classList.add('active');
-    setTimeout(() => {
-      const modalContent = modal.querySelector('.table-modal');
-      if (modalContent) {
-        modalContent.classList.add('active');
-      }
-    }, 10);
-    document.body.style.overflow = 'hidden';
-  }
-  
-  /**
-   * Close a table modal
-   */
-  function closeModal(modal) {
-    const modalContent = modal.querySelector('.table-modal');
-    if (modalContent) {
-      modalContent.classList.remove('active');
-    }
-    setTimeout(() => {
-      modal.classList.remove('active');
-      document.body.style.overflow = '';
-    }, 300);
-  }
-  
-  /**
-   * Create chart with data from the specified JSON file
-   */
-  // Track charts that are currently being created to prevent double initialization
-  const chartCreationInProgress = {};
-  
-  async function createChart(chartKey, canvasId) {
-    try {
-      // Check if this chart is already being created
-      if (chartCreationInProgress[canvasId]) {
-        console.log(`Chart creation already in progress for ${canvasId}, skipping duplicate request`);
-        return;
-      }
+    tableContainers.forEach(container => {
+      const viewButton = container.querySelector('[data-view-table]');
+      const modalId = container.getAttribute('data-table-id');
+      const modal = document.querySelector(`[data-table-modal="${modalId}"]`) || 
+                    container.nextElementSibling;
       
-      // Mark this chart as being created
-      chartCreationInProgress[canvasId] = true;
-      
-      // Destroy existing chart instance if it exists
-      if (chartInstances[canvasId]) {
-        console.log(`Destroying existing chart instance for ${canvasId}`);
-        chartInstances[canvasId].destroy();
-        delete chartInstances[canvasId];
-      }
-      
-      // Fetch chart data
-      const dataUrl = `/tzb/data/${chartKey}.json`;
-      console.log('Fetching data from:', dataUrl);
-      const response = await fetch(dataUrl);
-      const data = await response.json();
-      
-      if (!data[chartKey]) {
-        console.error(`No data found for chart key: ${chartKey}`);
-        delete chartCreationInProgress[canvasId]; // Clear the in-progress flag
-        return;
-      }
-      
-      const chartData = data[chartKey];
-      const canvas = document.getElementById(canvasId);
-      if (!canvas) {
-        console.error('Canvas element not found:', canvasId);
-        delete chartCreationInProgress[canvasId]; // Clear the in-progress flag
-        return;
-      }
-      
-      // Check again if another chart was created while we were fetching data
-      if (chartInstances[canvasId]) {
-        console.log(`Another chart was created for ${canvasId} while we were fetching data, aborting`);
-        delete chartCreationInProgress[canvasId]; // Clear the in-progress flag
-        return;
-      }
-      
-      console.log('Creating chart with data:', chartData);
-      
-      // Determine best padding based on data size
-      const dataPoints = chartData.length;
-      const isMobile = window.innerWidth < 768;
-      
-      // Adaptive padding based on data points and screen size
-      const padding = {
-        top: isMobile ? 15 : 20,
-        right: Math.min(20 + (dataPoints > 5 ? 10 : 0), 30),
-        left: isMobile ? 5 : 10,
-        bottom: 5
-      };
-      
-      // Adjust point styles based on data quantity
-      const pointRadius = dataPoints > 8 ? 3 : 4;
-      const pointHoverRadius = dataPoints > 8 ? 5 : 6;
-      
-      try {
-        // Create the chart
-        const chart = new Chart(canvas, {
-          type: 'line',
-          data: {
-            labels: chartData.map(item => item.year.toString()),
-            datasets: [{
-              label: '数值',
-              data: chartData.map(item => item.value),
-              borderColor: 'rgb(59, 130, 246)',
-              backgroundColor: 'rgba(59, 130, 246, 0.1)',
-              tension: 0.1,
-              pointRadius: pointRadius,
-              pointHoverRadius: pointHoverRadius,
-              pointBackgroundColor: 'white',
-              pointBorderColor: 'rgb(59, 130, 246)',
-              pointBorderWidth: 2
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            layout: {
-              padding: padding
-            },
-            plugins: {
-              legend: {
-                display: false
-              },
-              tooltip: {
-                callbacks: {
-                  label: function(context) {
-                    return `${context.parsed.y}`;
-                  }
-                }
-              },
-              datalabels: {
-                color: '#333',
-                anchor: 'end',
-                align: 'top',
-                offset: isMobile ? 5 : 8,
-                font: {
-                  weight: 'bold',
-                  size: isMobile ? 10 : 12
-                },
-                formatter: function(value) {
-                  return value;
-                },
-                backgroundColor: 'rgba(255, 255, 255, 0.7)',
-                borderRadius: 4,
-                padding: {
-                  top: 2,
-                  bottom: 2,
-                  left: 4,
-                  right: 4
-                },
-                display: true
-              }
-            },
-            scales: {
-              y: {
-                beginAtZero: false,
-                ticks: {
-                  padding: 10,
-                  font: {
-                    size: isMobile ? 10 : 12
-                  }
-                },
-                grid: {
-                  drawBorder: false,
-                  borderDash: [5, 5]
-                }
-              },
-              x: {
-                ticks: {
-                  padding: 3,
-                  font: {
-                    size: isMobile ? 10 : 12
-                  }
-                },
-                grid: {
-                  display: true,
-                  drawBorder: false
-                }
-              }
-            }
-          },
-          plugins: hasDataLabelsPlugin ? [ChartDataLabels] : []
+      if (viewButton && modal) {
+        // Button to open modal
+        viewButton.addEventListener('click', () => {
+          modal.classList.add('active');
+          const modalContent = modal.querySelector('.table-modal');
+          if (modalContent) {
+            setTimeout(() => {
+              modalContent.classList.add('active');
+            }, 10);
+          }
+          document.body.style.overflow = 'hidden';
         });
         
-        // Store the chart instance for later cleanup
-        chartInstances[canvasId] = chart;
-      } catch (chartError) {
-        console.error(`Error creating chart: ${chartError.message}`);
-        
-        // Special handling for "Canvas is already in use" errors
-        if (chartError.message && chartError.message.includes('Canvas is already in use')) {
-          console.log('Detected canvas already in use, attempting to force clear...');
-          
-          try {
-            // Try to replace the canvas element
-            const tooltipContainer = canvas.closest('.chart-tooltip');
-            if (tooltipContainer) {
-              // Replace the canvas with a fresh one
-              const newCanvas = document.createElement('canvas');
-              newCanvas.id = canvasId;
-              tooltipContainer.innerHTML = ''; // Clear all children
-              tooltipContainer.appendChild(newCanvas);
-              
-              console.log('Replaced canvas element, retrying chart creation...');
-              
-              // Reset the in-progress flag so we can retry
-              delete chartCreationInProgress[canvasId];
-              
-              // Retry chart creation after a short delay
-              setTimeout(() => {
-                createChart(chartKey, canvasId);
-              }, 50);
-              return; // Exit early since we're retrying
-            }
-          } catch (e) {
-            console.error('Error while replacing canvas:', e);
-          }
-        }
-      }
-      
-      // Clear the in-progress flag
-      delete chartCreationInProgress[canvasId];
-    } catch (error) {
-      console.error('Error creating chart:', error, chartKey, canvasId);
-      // Make sure to clear the in-progress flag even if there's an error
-      delete chartCreationInProgress[canvasId];
-    }
-  }
-  
-  // 预加载第一个图表
-  function preloadFirstChart() {
-    if (hoverCharts.length > 0 && typeof tippy !== 'undefined') {
-      const firstElementId = `hover-chart-0`;
-      console.log('Attempting to preload first chart');
-      if (tippyInstances[firstElementId]) {
-        // 显示tooltip但不用户可见
-        const instance = tippyInstances[firstElementId];
-        // 强制加载图表数据
-        fetch(`/tzb/data/${hoverCharts[0].key}.json`)
-          .then(response => response.json())
-          .then(data => {
-            console.log('Preloaded data for first chart');
-          })
-          .catch(err => {
-            console.error('Failed to preload first chart data', err);
+        // Close button and click outside to close
+        const closeButton = modal.querySelector('[data-close-modal]');
+        if (closeButton) {
+          closeButton.addEventListener('click', () => {
+            closeModal(modal);
           });
+        }
+        
+        // Close when clicking overlay (outside the modal content)
+        modal.addEventListener('click', (e) => {
+          if (e.target === modal) {
+            closeModal(modal);
+          }
+        });
+        
+        // Close on escape key
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape' && modal.classList.contains('active')) {
+            closeModal(modal);
+          }
+        });
       }
+    });
+    
+    function closeModal(modal: Element) {
+      const modalContent = modal.querySelector('.table-modal');
+      if (modalContent) {
+        modalContent.classList.remove('active');
+      }
+      setTimeout(() => {
+        modal.classList.remove('active');
+        document.body.style.overflow = '';
+      }, 300);
     }
   }
 </script>
 
 <style is:global>
-  .hover-chart-text {
-    color: #3570FF;
-    text-decoration: none;
-    cursor: pointer;
+  .markdown-content {
+    line-height: 1.8;
+    color: #2c3e50;
+  }
+  
+  /* Typography */
+  .markdown-content h1,
+  .markdown-content h2,
+  .markdown-content h3,
+  .markdown-content h4,
+  .markdown-content h5,
+  .markdown-content h6 {
+    font-weight: 600;
+    line-height: 1.3;
+    margin-top: 1.8em;
+    margin-bottom: 1em;
+    color: #1a202c;
+  }
+  
+  .markdown-content h1 {
+    font-size: 1.875rem;
+  }
+  
+  .markdown-content h2 {
+    font-size: 1.5rem;
+    color: #2d3748;
+  }
+  
+  .markdown-content h3 {
+    font-size: 1.25rem;
+    color: #4a5568;
+  }
+  
+  .markdown-content p {
+    margin: 0 0 1.25rem 0;
+    color: #4a5568;
+  }
+  
+  .markdown-content ul,
+  .markdown-content ol {
+    margin: 0 0 1.25rem 1.5rem;
+    padding: 0;
+  }
+  
+  .markdown-content li {
+    margin-bottom: 0.5rem;
+  }
+  
+  .markdown-content strong {
+    font-weight: 600;
+    color: #2d3748;
+  }
+  
+  /* Table Styles */
+  .table-container {
+    width: 100%;
+    overflow-x: auto;
+    margin-bottom: 1.5rem;
     position: relative;
-    border-bottom: 1.5px dotted #3570FF;
-    padding-bottom: 1px;
   }
   
-  .hover-chart-text:hover {
-    background-color: rgba(53, 112, 255, 0.08);
+  .markdown-table {
+    width: 100%;
+    border-collapse: collapse;
+    border: 1px solid #1b3660;
   }
   
-  .chart-tooltip {
-    padding: 10px 10px 5px 10px;
-    min-width: 300px;
-    min-height: 200px;
-    max-width: 95vw;
-    max-height: 70vh;
-    transition: width 0.2s ease-in-out, height 0.2s ease-in-out;
+  .markdown-table th,
+  .markdown-table td {
+    border: 1px solid #1b3660;
+    padding: 0.7rem 1rem;
+    text-align: left;
   }
   
-  .tippy-box[data-theme~='light'] {
+  .markdown-table th {
+    background-color: #f7fafc;
+    font-weight: 600;
+  }
+  
+  /* Large table handling */
+  .large-table {
+    position: relative;
+    padding-bottom: 3rem;
+  }
+  
+  .view-full-table {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    background-color: #4299e1;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    font-size: 0.875rem;
+    transition: background-color 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  
+  .view-full-table:hover {
+    background-color: #3182ce;
+  }
+
+  .view-full-table svg {
+    width: 14px;
+    height: 14px;
+  }
+  
+  /* Table Modal */
+  .table-modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  
+  .table-modal-overlay.active {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 1;
+  }
+  
+  .table-modal {
     background-color: white;
-    color: black;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    max-width: 95vw !important;
-    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    width: 90%;
+    max-width: 1200px;
+    max-height: 90vh;
+    overflow: hidden;
+    transform: translateY(20px);
+    opacity: 0;
+    transition: transform 0.3s, opacity 0.3s;
   }
   
-  .tippy-box[data-theme~='light'][data-placement^='top'] > .tippy-arrow::before {
-    border-top-color: white;
+  .table-modal.active {
+    transform: translateY(0);
+    opacity: 1;
   }
   
-  @media (max-width: 768px) {
-    .chart-tooltip {
-      min-width: 250px;
-      padding: 8px 8px 3px 8px;
-    }
+  .table-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  
+  .table-modal-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin: 0;
+  }
+  
+  .table-modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #718096;
+  }
+  
+  .table-modal-content {
+    padding: 1.5rem;
+    overflow: auto;
+    max-height: calc(90vh - 4rem);
   }
 </style> 

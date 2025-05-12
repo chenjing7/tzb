@@ -21,12 +21,6 @@ const { title, activeNav } = Astro.props;
     <title>{title} | TZB 翻阅每一页</title>
     <ClientRouter />
     
-    <!-- Preload critical libraries to improve loading performance -->
-    <link rel="preload" href="https://unpkg.com/@popperjs/core@2" as="script" crossorigin="anonymous" />
-    <link rel="preload" href="https://unpkg.com/tippy.js@6" as="script" crossorigin="anonymous" />
-    <link rel="preload" href="https://cdn.jsdelivr.net/npm/chart.js" as="script" />
-    <link rel="preload" href="https://unpkg.com/tippy.js@6/dist/tippy.css" as="style" crossorigin="anonymous" />
-    
     <!-- Prefetch navigation pages -->
     <link rel="prefetch" href="/tzb/mda" />
     <link rel="prefetch" href="/tzb/letters" />
